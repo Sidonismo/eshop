@@ -7,7 +7,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getKetubaById, updateKetuba, deleteKetuba, Ketuba } from '@/lib/db';
+import { getKetubaById, updateKetuba, deleteKetuba } from '@/lib/db';
+import { ketubaSchema, validateData } from '@/lib/validation';
 
 // GET - Získat detail ketuboty
 export async function GET(
@@ -44,11 +45,13 @@ export async function PUT(
   { params }: { params: Promise<{ id?: string | string[] }> }
 ) {
   try {
-    const body: Ketuba = await request.json();
+    const body = await request.json();
 
-    if (!body.name || !body.price) {
+    // Validace vstupních dat
+    const validation = validateData(ketubaSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Název a cena jsou povinné' },
+        { error: 'Nesprávná data', errors: validation.errors },
         { status: 400 }
       );
     }
@@ -60,13 +63,8 @@ export async function PUT(
     if (Number.isNaN(ketubaId)) {
       return NextResponse.json({ error: 'Neplatné ID ketuby' }, { status: 400 });
     }
-    const success = updateKetuba(ketubaId, {
-      name: body.name,
-      description: body.description,
-      price: body.price,
-      image: body.image,
-      category: body.category,
-    });
+    
+    const success = updateKetuba(ketubaId, validation.data);
 
     if (!success) {
       return NextResponse.json({ error: 'Ketuba nenalezena' }, { status: 404 });

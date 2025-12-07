@@ -23,8 +23,9 @@
  * - 500: Chyba při odesílání (Resend API error nebo síťová chyba)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { contactSchema, validateData } from '@/lib/validation';
 
 /**
  * Inicializace Resend klienta
@@ -36,24 +37,21 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 /**
  * POST handler pro odeslání kontaktního formuláře
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     // Parsování JSON dat z request body
-    const { name, email, phone, message } = await request.json();
+    const body = await request.json();
 
-    /**
-     * Validace povinných polí
-     * - name: Jméno odesílatele
-     * - email: Email odesílatele (použit jako reply-to)
-     * - message: Zpráva
-     * - phone: Nepovinné
-     */
-    if (!name || !email || !message) {
+    // Validace vstupních dat
+    const validation = validateData(contactSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Vyplňte prosím všechna povinná pole' },
+        { error: 'Nesprávná data', errors: validation.errors },
         { status: 400 }
       );
     }
+
+    const { name, email, phone, message } = validation.data;
 
     /**
      * Odeslání emailu přes Resend API

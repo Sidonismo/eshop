@@ -1,23 +1,29 @@
 /**
  * API endpoint pro přihlášení do administrace
  *
- * POST: Ověří uživatele a vytvoří session
+ * POST: Ověří uživatele a vytvoří JWT session
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getUserByUsername } from '@/lib/db';
+import { setAuthCookie } from '@/lib/auth';
+import { loginSchema, validateData } from '@/lib/validation';
 import bcrypt from 'bcryptjs';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const { username, password } = await request.json();
+    const body = await request.json();
 
-    if (!username || !password) {
+    // Validace vstupních dat
+    const validation = validateData(loginSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Username a heslo jsou povinné' },
+        { error: 'Nesprávná data', errors: validation.errors },
         { status: 400 }
       );
     }
+
+    const { username, password } = validation.data;
 
     // Najdi uživatele
     const user = getUserByUsername(username);
@@ -39,20 +45,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vytvoř response s cookie
-    const response = NextResponse.json(
+    // Nastav JWT session cookie
+    await setAuthCookie(user.username);
+
+    return NextResponse.json(
       { message: 'Přihlášení úspěšné', username: user.username },
       { status: 200 }
     );
-
-    // Nastav HTTP-only cookie pro autentizaci
-    response.cookies.set('admin_session', username, {
-      httpOnly: true,
-      maxAge: 60 * 60 * 24, // 24 hodin
-      path: '/',
-    });
-
-    return response;
   } catch (error) {
     console.error('Chyba při přihlašování:', error);
     return NextResponse.json(

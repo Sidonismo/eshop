@@ -5,8 +5,9 @@
  * POST: Vytvoří novou ketubu
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getAllKetubas, createKetuba, Ketuba } from '@/lib/db';
+import { NextResponse } from 'next/server';
+import { getAllKetubas, createKetuba } from '@/lib/db';
+import { ketubaSchema, validateData } from '@/lib/validation';
 
 // GET - Získat všechny ketuboty
 export async function GET() {
@@ -23,25 +24,20 @@ export async function GET() {
 }
 
 // POST - Vytvořit novou ketubu
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body: Ketuba = await request.json();
+    const body = await request.json();
 
-    // Validace
-    if (!body.name || !body.price) {
+    // Validace vstupních dat
+    const validation = validateData(ketubaSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Název a cena jsou povinné' },
+        { error: 'Nesprávná data', errors: validation.errors },
         { status: 400 }
       );
     }
 
-    const newKetuba = createKetuba({
-      name: body.name,
-      description: body.description,
-      price: body.price,
-      image: body.image,
-      category: body.category,
-    });
+    const newKetuba = createKetuba(validation.data);
 
     return NextResponse.json(
       { message: 'Ketuba vytvořena', id: newKetuba.id },

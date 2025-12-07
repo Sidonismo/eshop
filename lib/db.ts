@@ -11,29 +11,12 @@
 
 import fs from 'fs';
 import path from 'path';
+import type { Ketuba, CreateKetubaInput } from '@/types/ketuba';
+import type { User } from '@/types/user';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const KETUBAS_FILE = path.join(DATA_DIR, 'ketubas.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
-
-// Typy pro databázové entity
-export interface Ketuba {
-  id?: number;
-  name: string;
-  description?: string;
-  price: number;
-  image?: string;
-  category?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface User {
-  id?: number;
-  username: string;
-  password: string;
-  created_at?: string;
-}
 
 /**
  * Inicializace databáze
@@ -76,7 +59,7 @@ export function getKetubaById(id: number): Ketuba | null {
 /**
  * Vytvoření nové ketuboty
  */
-export function createKetuba(ketuba: Omit<Ketuba, 'id' | 'created_at' | 'updated_at'>): Ketuba {
+export function createKetuba(ketuba: CreateKetubaInput): Ketuba {
   const ketubas = getAllKetubas();
 
   // Najdi největší ID a přidej 1
