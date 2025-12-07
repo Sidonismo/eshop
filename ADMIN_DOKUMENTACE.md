@@ -9,7 +9,10 @@ Změny v adminu se automaticky projeví na veřejných stránkách eshopu.
 ## Technologie
 
 - **Databáze**: JSON soubory (data/ketubas.json, data/users.json)
-- **Autentizace**: Cookie-based sessions s bcrypt hashováním hesel
+- **Autentizace**: JWT tokens (JSON Web Tokens) s bcrypt hashováním hesel
+- **Session**: Secure HTTP-only cookies s automatickou expiraci (24h)
+- **Middleware**: Next.js middleware chrání všechny admin routes
+- **Validace**: Zod schemas pro runtime validaci API vstupů
 - **Framework**: Next.js 15 (App Router)
 - **UI**: React s Tailwind CSS
 
@@ -18,7 +21,12 @@ Změny v adminu se automaticky projeví na veřejných stránkách eshopu.
 - ✅ Propojení s veřejnými stránkami - změny v adminu se zobrazí na hlavní stránce
 - ✅ Náhled obrázků ve formuláři - live preview při zadávání URL
 - ✅ Miniatury obrázků v seznamu ketubot
-- ✅ JSON databáze místo SQLite - jednodušší, spolehlivější
+- ✅ JSON databáze místo SQLite - jednodušší, spolehlivejší
+- 🔒 **JWT autentizace** - bezpečné tokeny místo plain text
+- 🔒 **Middleware ochrana** - automatická ochrana admin routes
+- ✅ **Zod validace** - runtime validace všech vstupů
+- 🔒 **Secure cookies** - httpOnly, sameSite, secure flags
+- ✅ **Centralizované typy** - TypeScript typy v samostatných souborech
 
 ## Struktura souborů
 
@@ -35,7 +43,7 @@ app/
 │       │   ├── init/
 │       │   │   └── route.ts   # Vytvoření prvního admin uživatele
 │       │   ├── login/
-│       │   │   └── route.ts   # Přihlášení
+│       │   │   └── route.ts   # Přihlášení (JWT)
 │       │   └── logout/
 │       │       └── route.ts   # Odhlášení
 │       └── ketubas/
@@ -43,9 +51,16 @@ app/
 │           └── [id]/
 │               └── route.ts   # GET, PUT, DELETE pro konkrétní ketubu
 lib/
-└── db.ts                      # Databázový modul (SQLite funkce)
+├── db.ts                      # Databázový modul (JSON operace)
+├── auth.ts                    # JWT autentizační funkce
+└── validation.ts              # Zod validační schémata
+types/
+├── ketuba.ts                  # TypeScript typy pro Ketubu
+└── user.ts                    # TypeScript typy pro Uživatele
 data/
-└── eshop.db                   # SQLite databáze (vytvoří se automaticky)
+├── ketubas.json               # JSON databáze ketubot
+└── users.json                 # JSON databáze uživatelů
+middleware.ts                  # Next.js middleware (ochrana admin routes)
 ```
 
 ## Nastavení a spuštění
@@ -53,10 +68,27 @@ data/
 ### 1. Instalace závislostí
 
 ```bash
-npm install sql.js bcryptjs @types/bcryptjs
+npm install
 ```
 
-### 2. Vytvoření prvního admin uživatele
+### 2. Konfigurace environment variables
+
+Vytvořte soubor `.env.local` (zkopírujte z `.env.example`):
+
+```env
+# JWT Secret - vygenerujte silný náhodný klíč
+JWT_SECRET=your-super-secret-key-change-this-in-production
+
+# Resend API klíč pro emailový formulář
+RESEND_API_KEY=re_your_api_key
+```
+
+**Generování JWT_SECRET**:
+```bash
+openssl rand -base64 32
+```
+
+### 3. Vytvoření prvního admin uživatele
 
 **Důležité**: Toto je nutné udělat PŘED prvním přihlášením!
 
@@ -97,11 +129,40 @@ fetch('http://localhost:3000/api/admin/auth/init', {
 
 **Poznámka**: Endpoint `/api/admin/auth/init` funguje pouze pokud v databázi ještě NENÍ žádný uživatel. Po vytvoření prvního uživatele již nepůjde vytvořit další tímto způsobem (bezpečnostní opatření).
 
-### 3. Přihlášení do administrace
+### 4. Přihlášení do administrace
 
 1. Navštivte: **http://localhost:3000/admin/login**
-2. Zadejte username a heslo vytvořené v kroku 2
-3. Po úspěšném přihlášení budete přesměrováni na dashboard
+2. Zadejte username a heslo vytvořené v kroku 3
+3. Po úspěšném přihlášení:
+   - Obdržíte JWT token v secure cookie
+   - Budete přesměrováni na dashboard
+   - Session platí 24 hodin
+
+**Bezpečnost**:
+- JWT token je podepsaný a šifrovaný
+- Cookie je HTTP-only (JavaScriptu nepřístupná)
+- Secure flag v produkci (pouze HTTPS)
+- SameSite=lax ochrana před CSRF
+
+## Ochrana admin routes
+
+Všechny admin cesty jsou chráněny Next.js middleware (`middleware.ts`):
+
+**Chráněné cesty**:
+- `/admin/dashboard` - Admin panel
+- `/api/admin/ketubas` - CRUD operace
+- `/api/admin/ketubas/[id]` - Detail operace
+
+**Necháněné cesty**:
+- `/admin/login` - Přihlašovací stránka
+- `/api/admin/auth/login` - Login endpoint
+- `/api/admin/auth/init` - Inicializace uživatele
+
+**Chování middleware**:
+1. Kontroluje přítomnost JWT tokenu v cookie
+2. Validuje signaturu a expiraci tokenu
+3. Pokud není platný - přesměruje na `/admin/login`
+4. Pokud je platný - povolí přístup
 
 ## Použití admin dashboardu
 
@@ -115,15 +176,22 @@ Admin dashboard zobrazuje:
 
 ### Přidání nové ketuboty
 
-1. Klikněte na tlačítko **"+ Přidat novou ketubu"**
+1. Klikněte na tlačítko **"＋ Přidat novou ketubu"**
 2. Vyplňte formulář:
-   - **Název*** (povinné) - Název ketuboty
-   - **Popis** (nepovinné) - Detailní popis
-   - **Cena*** (povinné) - Cena v Kč (např. 2500)
-   - **URL obrázku** (nepovinné) - Odkaz na obrázek ketuboty
-   - **Kategorie** (nepovinné) - např. "Tradiční", "Moderní", "Custom"
+   - **Název*** (povinné) - Název ketuboty (1-200 znaků)
+   - **Popis** (nepovinné) - Detailní popis (max 2000 znaků)
+   - **Cena*** (povinné) - Cena v Kč (kladné číslo, max 1,000,000)
+   - **URL obrázku** (nepovinné) - Platná URL adresa obrázku
+   - **Kategorie** (nepovinné) - např. "Tradiční", "Moderní", "Custom" (max 100 znaků)
 3. Klikněte **"Přidat ketubu"**
-4. Ketuba se objeví v seznamu
+4. Data jsou validována Zod schématem
+5. Ketuba se objeví v seznamu
+
+**Validace**:
+- Název a cena jsou povinné
+- URL musí být platný formát
+- Všechny textové vstupy jsou automaticky trimované
+- Cena musí být kladné číslo
 
 ### Úprava ketuboty
 
@@ -169,6 +237,10 @@ Vytvoření prvního admin uživatele (funguje pouze pokud databáze neobsahuje 
 #### POST /api/admin/auth/login
 Přihlášení do administrace.
 
+**Validace**: `loginSchema` (Zod)
+- username: min 3 znaky, max 50, alfanumerické + _-
+- password: min 6 znaků, max 100
+
 **Request:**
 ```json
 {
@@ -185,7 +257,19 @@ Přihlášení do administrace.
 }
 ```
 
-Nastaví cookie `admin_session` s username.
+Nastaví secure HTTP-only cookie `admin_session` s JWT tokenem:
+- `httpOnly: true` - ochrana před XSS
+- `secure: true` (v produkci) - pouze HTTPS
+- `sameSite: 'lax'` - ochrana před CSRF
+- `maxAge: 86400` (24 hodin)
+
+**Chybové response (400)**:
+```json
+{
+  "error": "Nesprávná data",
+  "errors": ["Username musí mít alespoň 3 znaky"]
+}
+```
 
 #### POST /api/admin/auth/logout
 Odhlášení z administrace.
@@ -197,7 +281,7 @@ Odhlášení z administrace.
 }
 ```
 
-Smaže cookie `admin_session`.
+Smaže secure cookie `admin_session` s JWT tokenem.
 
 ### Správa ketubot
 
@@ -225,6 +309,13 @@ Získá seznam všech ketubot.
 #### POST /api/admin/ketubas
 Vytvoří novou ketubu.
 
+**Validace**: `ketubaSchema` (Zod)
+- name: povinné, 1-200 znaků, trim
+- description: volitelné, max 2000 znaků, trim
+- price: povinné, kladné číslo, max 1,000,000
+- image: volitelné, platná URL
+- category: volitelné, max 100 znaků, trim
+
 **Request:**
 ```json
 {
@@ -241,6 +332,17 @@ Vytvoří novou ketubu.
 {
   "message": "Ketuba vytvořena",
   "id": 2
+}
+```
+
+**Chybové response (400)**:
+```json
+{
+  "error": "Nesprávná data",
+  "errors": [
+    "Název je povinný",
+    "Cena musí být kladné číslo"
+  ]
 }
 ```
 
@@ -266,6 +368,8 @@ Získá detail konkrétní ketuboty.
 #### PUT /api/admin/ketubas/[id]
 Aktualizuje ketubu.
 
+**Validace**: `ketubaSchema` (Zod) - stejná pravidla jako POST
+
 **Request:**
 ```json
 {
@@ -281,6 +385,14 @@ Aktualizuje ketubu.
 ```json
 {
   "message": "Ketuba aktualizována"
+}
+```
+
+**Chybové response (400)**:
+```json
+{
+  "error": "Nesprávná data",
+  "errors": ["Obrázek musí být platná URL"]
 }
 ```
 

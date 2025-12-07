@@ -10,7 +10,10 @@ Eshop pro prodej ketubot s administračním rozhraním. Next.js 15 (App Router) 
 - **Backend**: Next.js API Routes  
 - **Databáze**: JSON soubory (`data/ketubas.json`, `data/users.json`)
 - **Email**: Resend API
-- **Autentizace**: Cookie-based sessions s bcrypt hashováním hesel
+- **Autentizace**: JWT tokens (JSON Web Tokens) s bcrypt hashováním hesel
+- **Session**: Secure HTTP-only cookies (24h expirace)
+- **Validace**: Zod schemas pro runtime validaci
+- **Ochrana**: Next.js middleware chrání admin routes
 
 ## Struktura projektu
 
@@ -21,9 +24,9 @@ app/
 │   └── dashboard/page.tsx      # Admin dashboard s CRUD operacemi
 ├── api/
 │   ├── admin/
-│   │   ├── auth/               # init, login, logout endpoints
-│   │   └── ketubas/            # CRUD pro ketuboty (admin)
-│   ├── contact/route.ts        # Kontaktní formulář
+│   │   ├── auth/               # init, login, logout endpoints (JWT)
+│   │   └── ketubas/            # CRUD pro ketuboty (admin, Zod validace)
+│   ├── contact/route.ts        # Kontaktní formulář (Zod validace)
 │   └── ketubas/route.ts        # Veřejný seznam ketubot
 ├── kontakt/page.tsx            # Veřejný kontaktní formulář
 ├── produkt/[id]/page.tsx       # Detail produktu
@@ -34,7 +37,15 @@ data/
 └── users.json                  # Databáze uživatelů
 
 lib/
-└── db.ts                       # Databázový modul (JSON operace)
+├── db.ts                       # Databázový modul (JSON operace)
+├── auth.ts                     # JWT autentizační funkce
+└── validation.ts               # Zod validační schémata
+
+types/
+├── ketuba.ts                   # TypeScript typy pro Ketubu
+└── user.ts                     # TypeScript typy pro Uživatele
+
+middleware.ts                   # Next.js middleware (ochrana admin routes)
 ```
 
 ## Databázové schéma
@@ -71,19 +82,19 @@ lib/
 
 ### Autentizace
 - `POST /api/admin/auth/init` - Vytvoření prvního admin uživatele (funguje pouze při prázdné databázi)
-- `POST /api/admin/auth/login` - Přihlášení (vrací cookie `admin_session`)
-- `POST /api/admin/auth/logout` - Odhlášení
+- `POST /api/admin/auth/login` - Přihlášení (vrací JWT token v secure cookie `admin_session`)
+- `POST /api/admin/auth/logout` - Odhlášení (smaže JWT cookie)
 
-### Admin CRUD
+### Admin CRUD (chráněno middleware + Zod validace)
 - `GET /api/admin/ketubas` - Seznam všech ketubot
-- `POST /api/admin/ketubas` - Vytvoření nové ketuboty
+- `POST /api/admin/ketubas` - Vytvoření nové ketuboty (ketubaSchema)
 - `GET /api/admin/ketubas/[id]` - Detail ketuboty
-- `PUT /api/admin/ketubas/[id]` - Aktualizace ketuboty
+- `PUT /api/admin/ketubas/[id]` - Aktualizace ketuboty (ketubaSchema)
 - `DELETE /api/admin/ketubas/[id]` - Smazání ketuboty
 
 ### Veřejné
 - `GET /api/ketubas` - Veřejný seznam ketubot (bez autentizace)
-- `POST /api/contact` - Odeslání kontaktního formuláře (Resend API)
+- `POST /api/contact` - Odeslání kontaktního formuláře (Resend API, contactSchema)
 
 ## Důležité poznámky
 
@@ -102,11 +113,51 @@ lib/
 - Synchronní operace, jednoduché
 - Pro větší data doporučuji PostgreSQL/MySQL
 
-### Bezpečnost (development)
-- Bcrypt hashing (10 rounds)
-- HTTP-only cookies
-- Init endpoint funguje pouze jednou
-- ⚠️ Pro produkci: JWT, CSRF protection, rate limiting, middleware ochrana
+### Bezpečnost
+
+#### JWT Autentizace (lib/auth.ts)
+- `generateToken(username)` - Vygeneruje JWT token s 24h expiraci
+- `verifyToken(token)` - Ověří platnost a signaturu tokenu
+- `setAuthCookie(username)` - Nastaví secure cookie s JWT tokenem
+- `clearAuthCookie()` - Smaže session cookie
+- **ENV**: `JWT_SECRET` - musí být nastaven v `.env.local`
+
+#### Middleware ochrana (middleware.ts)
+- Chrání `/admin/dashboard` a `/api/admin/ketubas/*`
+- Automatická validace JWT tokenu
+- Přesměrování na login při neplatném tokenu
+- Nezasahuje do `/admin/login` a auth endpointů
+
+#### Zod validace (lib/validation.ts)
+- `ketubaSchema` - validace ketuboty (name, price povinné, URL check, limits)
+- `loginSchema` - validace přihlášení (username 3-50 znaků, password 6+)
+- `contactSchema` - validace kontaktu (email formát, telefon regex, limity)
+- `validateData(schema, data)` - helper funkce pro validaci
+
+#### Cookie konfigurace
+```typescript
+{
+  httpOnly: true,           // Ochrana před XSS
+  secure: NODE_ENV === 'production',  // HTTPS only v produkci
+  sameSite: 'lax',         // Ochrana před CSRF
+  maxAge: 86400,           // 24 hodin
+}
+```
+
+#### Bezpečnostní opatření
+- ✅ JWT tokeny s automatickou expiraci
+- ✅ Secure HTTP-only cookies
+- ✅ Middleware ochrana admin routes
+- ✅ Zod runtime validace všech vstupů
+- ✅ Bcrypt hashing hesel (10 rounds)
+- ✅ URL a email formát validace
+- ✅ Input sanitizace (trim, toLowerCase)
+- ⚠️ Pro produkci: rate limiting, CSRF tokens
+
+### TypeScript typy
+- `types/ketuba.ts` - Ketuba, CreateKetubaInput, UpdateKetubaInput
+- `types/user.ts` - User, CreateUserInput, SafeUser
+- Všechny typy jsou exportovány a používány v celém projektu
 
 ## UX features
 
@@ -202,6 +253,37 @@ npm run build  # Zkompiluje a ověří typy
 - `.github/copilot-instructions.md` - tento soubor (shrnutí pro Copilot)
 
 Velká změna = nový feature, změna architektury, nový endpoint, změna databázového schématu, řešení významného problému.
+
+## Pravidla pro psaní kódu
+
+### Komentáře v kódu
+
+**VŽDY používej ČESKÉ komentáře** - projekt je kompletně v češtině:
+
+```typescript
+// ✅ SPRÁVNĚ - české komentáře
+// Načti všechny ketuboty z databáze
+const ketubas = getAllKetubas();
+
+// Validace povinných polí
+if (!name || !price) {
+  throw new Error('Název a cena jsou povinné');
+}
+
+// ❌ ŠPATNĚ - anglické komentáře v českém projektu
+// Load all ketubas from database
+const ketubas = getAllKetubas();
+```
+
+**Výjimky**:
+- JSDoc/TSDoc dokumentační komentáře mohou být v angličtině (pro lepší tooling support)
+- Importy, exporty a názvy proměnných zůstávají v angličtině (standard)
+- Error messages pro uživatele MUSÍ být v češtině
+
+**Doporučení**:
+- Komentáře popisují "proč", ne "co" (kód sám říká "co")
+- Komplexní logika vyžaduje vysvětlující komentář
+- API endpointy mají hlavičkový komentář popisující účel
 
 ## Status projektu
 
