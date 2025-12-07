@@ -6,10 +6,11 @@
  */
 
 import { products } from '@/data/products';
+import ketubas from '@/data/ketubas.json';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { getTranslations } from 'next-intl/server';
+// translations are handled in layout; avoid server helper here to prevent runtime issues
+import ProductGallery from '@/components/ProductGallery';
 
 interface ProductPageProps {
   params: Promise<{
@@ -20,10 +21,11 @@ interface ProductPageProps {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { id, locale } = await params;
-  const t = await getTranslations();
-  
-  // Načti produkt - v budoucnu z API s locale parametrem
-  const product = products.find(p => p.id === id);
+
+  // Načti produkt - podporujeme dvě datová zdroje (dev: data/products.ts, data/ketubas.json)
+  const product =
+    products.find((p) => String(p.id) === String(id)) ||
+    (Array.isArray(ketubas) ? (ketubas as any[]).find((k) => String(k.id) === String(id)) : undefined);
 
   if (!product) {
     notFound();
@@ -36,30 +38,18 @@ export default async function ProductPage({ params }: ProductPageProps) {
         href={`/${locale}`}
         className="text-sage hover:text-gold transition-colors inline-flex items-center mb-8"
       >
-        ← {t('product.backToProducts')}
+        ← {locale === 'cs' ? 'Zpět na produkty' : locale === 'he' ? 'חזרה למוצרים' : 'Back to products'}
       </Link>
 
       <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
-        {/* Obrázek produktu */}
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {product.image ? (
-            <div className="aspect-[3/4] bg-gradient-to-br from-sage/10 to-gold/10 overflow-hidden">
-              <img
-                src={product.image}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="aspect-[3/4] bg-gradient-to-br from-sage/10 to-gold/10 flex items-center justify-center p-12">
-              <div className="text-center">
-                <div className="text-9xl mb-8 text-gold/40">✡</div>
-                <p className="text-sage/60 text-lg">
-                  {product.category || t('product.uncategorized')}
-                </p>
-              </div>
-            </div>
-          )}
+        {/* Obrázek produktu (galerie) */}
+        <div>
+          {/* Support product.images (array) with fallback to single product.image */}
+          {(() => {
+            // @ts-expect-error runtime shape
+            const images = (product as any).images ?? (product.image ? [product.image] : []);
+            return <ProductGallery images={images} alt={product.name} />;
+          })()}
         </div>
 
         {/* Detaily produktu */}
@@ -125,7 +115,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
           {/* Call to action */}
           <div className="bg-gold/10 rounded-lg p-6 border-2 border-gold/20">
             <h3 className="font-bold text-navy mb-2">
-              {t('product.contactUs')}
+              {locale === 'cs' && 'Kontaktujte nás'}
+              {locale === 'en' && 'Contact us'}
+              {locale === 'he' && 'צור קשר'}
             </h3>
             <p className="text-sage text-sm mb-4">
               {locale === 'cs' && 'Rádi s vámi probereme všechny detaily a vytvoříme ketubu přesně podle vašich představ.'}

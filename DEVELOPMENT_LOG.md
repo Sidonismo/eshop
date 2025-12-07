@@ -1654,3 +1654,42 @@ Terminal output ukázal:
 
 **Session ukončena**: 7.12.2025, ~3.5 hodiny práce na i18n implementaci
 
+
+---
+
+## 📅 Datum: 7. prosince 2025 (vizuální update, galerie, test data, pagination)
+
+### 🎯 Shrnutí změn
+
+- **Typografie**: Přidány Google Fonts `Inter` a `Playfair Display`; aktualizováno `app/globals.css`.
+- **Galerie**: Nový client komponent `components/ProductGallery.tsx` (hlavní obrázek + miniatury).
+- **Produktová stránka**: `app/[locale]/produkt/[id]/page.tsx` upravena pro pole `images` a použití galerie.
+- **Testovací obrázky**: Přidáno `public/images/ketubah-1.jpg`, `ketubah-2.jpg`, `ketubah-3.jpg` (JPEG placeholdery).
+- **Testovací data**: `data/ketubas.json` aktualizováno na 15 testovacích produktů pro rychlé ověření UI.
+- **Pagination**: Implementováno klientské `?page=` ovládání a zároveň přidána server-side SSG varianta `app/[locale]/page/[page]/page.tsx` s `generateStaticParams`.
+- **Canonical redirect**: `app/[locale]/page.tsx` nyní redirectuje na `/[locale]/page/1` pro SEO.
+- **Další opravy**: Opraven ReferenceError `t is not defined` a vyčištěny syntaktické chyby.
+
+### 📁 Upravené / přidané soubory (přehled)
+
+- `app/globals.css` — Google Fonts a typografie
+- `components/ProductGallery.tsx` — nový client komponent
+- `data/ketubas.json` — 15 testovacích produktů
+- `public/images/ketubah-1.jpg`, `ketubah-2.jpg`, `ketubah-3.jpg` — placeholdery
+- `app/[locale]/produkt/[id]/page.tsx` — podpora galerie a fallback
+- `app/[locale]/page.tsx` — redirect na `/page/1`
+- `app/[locale]/page/[page]/page.tsx` — server-side paginovaná stránka (SSG)
+
+### 🧪 Doporučené testy
+
+1. `npm run dev` → otevřít `/cs/page/1` a `/cs/produkt/2`.
+2. Ověřit, že galerie zobrazuje hlavní obrázek a miniatury.
+3. Ověřit, že `/images/ketubah-2.jpg` vrací JPEG (např. `curl -I`).
+4. Ověřit, že přechod mezi stránkami používá kanonické URL `/cs/page/N`.
+
+### 🔜 Další kroky (doporučení)
+
+- Přidat upload a správu více obrázků v adminu (pořadí, smazání, náhledy).
+- Přidat `rel="prev"/"next"` meta odkazy a canonical tagy pro SEO.
+- Zvážit přechod na `next/image` pro optimalizaci obrázků (včetně `next.config.js` pro externí domény).
+
