@@ -18,6 +18,21 @@ Vícejazyčný eshop pro prodej ketubot s administračním rozhraním. Next.js 1
 - **Validace**: Zod schemas pro runtime validaci
 - **Ochrana**: Next.js middleware chrání admin routes + i18n routing
 
+## Rychlé poznámky pro současný vývoj
+
+Poznámky níže shrnují, co je teď kritické pro pokračování práce (hotfixy a aktuální priority).
+
+- **Nový doplňkový log:** `DEVELOPMENT_LOG_ADDITIONS/2025-12-07-hotfix.md` — obsahuje podrobný záznam posledních oprav (layouty, admin UI, validace) a TODO checklist. Přečtěte si ho při dalším kroku.
+- **Root layout (`app/layout.tsx`)**: Musí obsahovat `<html>` a `<body>` a import `./globals.css` — admin stránky (`/admin`) používají root layout, takže bez něho se nenačtou globální styly.
+- **Localized layout (`app/[locale]/layout.tsx`)**: Nesmí duplikovat `<html>`/`<body>` když root layout tyto tagy poskytuje; místo toho pouze obalí `children` a používá `NextIntlClientProvider`.
+- **Admin API / payload**: API adminu nyní používá lokalizovaná pole (`name_cs`, `name_en`, `name_he`, `description_cs`, ...). Při volání `PUT /api/admin/ketubas/[id]` pošlete payload ve tvaru `localizedKetubaSchema` nebo mapujte lokální UI hodnoty na tato pole.
+- **Načítání dat do admin UI**: `GET /api/admin/ketubas` vrací lokalizované záznamy — mapujte `name_cs/name_en/name_he` → `name` pro zobrazení v jednoduchém admin formuláři (dočasné řešení), nebo implementujte multi-lang tabs.
+- **Middleware & auth**: Middleware chrání `/admin/dashboard` a `/api/admin/*`. Ujistěte se, že cookie `admin_session` je předána (`credentials: 'include'`) při testování z klienta.
+- **Dev server a env**: Po změně `.env.local` restartujte dev server (`npm run dev`). Pro debugování spouštějte dev server a sledujte konzoli pro runtime chyby.
+- **Tailwind a class warnings**: Některé utilitky byly normalizovány (`bg-gradient-to-br` → `bg-linear-to-br`, `aspect-[4/3]` → `aspect-4/3`, `flex-shrink-0` → `shrink-0`) — při refaktoru dodržujte aktuální naming ve `tailwind.config.ts`.
+- **Krátkodobé TODO** (viz nový log): multi-language admin form, zobrazit API validace v UI, E2E test admin flow.
+
+
 ## Struktura projektu
 
 ```
@@ -48,144 +63,44 @@ components/                      # 🆕 Sdílené komponenty
 └── admin/                      # 🔜 Admin komponenty
     ├── MultiLangInput.tsx      # Tab interface pro multi-lang
     └── PageEditor.tsx          # CMS editor
+# Copilot Instructions (Pruned)
 
-data/
-├── ketubas.json                # 🔜 Databáze ketubot (multi-lang)
-├── pages.json                  # 🔜 CMS stránky (multi-lang)
-└── users.json                  # Databáze uživatelů
+Krátký, aktuální a praktický návod pro pokračování práce — pouze to, co je nyní nezbytné.
 
-lib/
-├── db.ts                       # Databázový modul (JSON operace)
-├── auth.ts                     # JWT autentizační funkce (Node.js runtime)
-├── auth-edge.ts                # JWT autentizační funkce (Edge runtime)
-├── i18n.ts                     # 🆕 next-intl konfigurace
-└── validation.ts               # 🆕 Zod validační schémata (multi-lang)
+## 1) Rychlý přehled
+- Framework: Next.js 15 (App Router) + React + Tailwind CSS
+- i18n: next-intl (prefix-based routes `/cs`, `/en`, `/he`)
+- DB: JSON files in `data/` (`ketubas.json`, `users.json`)
 
-messages/                        # 🆕 Translation files
-├── cs.json                     # České překlady
-├── en.json                     # Anglické překlady
-└── he.json                     # Hebrejské překlady (RTL)
+## 2) Kritické poznámky pro současný vývoj
+- Root layout: `app/layout.tsx` musí obsahovat `<html>` a `<body>` a import `./globals.css`. Admin pages (`/admin`) závisí na tom.
+- Localized layout: `app/[locale]/layout.tsx` nesmí duplikovat `<html>`/`<body>` — používejte jen provider + wrapper pro `children`.
+- Admin API payload: Admin endpoints očekávají lokalizovaná pole (`name_cs`, `name_en`, `name_he`, `description_cs`, ...). MAPujte/posílejte `localizedKetubaSchema` při `PUT /api/admin/ketubas/[id]`.
+- Admin UI: `GET /api/admin/ketubas` vrací lokalizovaná data — dočasně mapujte `name_cs/name_en/name_he` → `name` pro single-lang admin UI, nebo implementujte multi-lang tabs.
+- Auth: Middleware chrání `/admin/*` + `/api/admin/*`. Používejte `credentials: 'include'` při fetch volání z klienta.
+- Dev: Po změně `.env.local` restartujte dev server: `npm run dev`.
 
-types/
-├── ketuba.ts                   # 🆕 TypeScript typy (LocalizedKetuba)
-├── page.ts                     # 🆕 CMS page types
-└── user.ts                     # TypeScript typy pro Uživatele
-
-middleware.ts                   # 🆕 Kombinovaný middleware (i18n + auth)
-next.config.ts                  # 🆕 Obsahuje next-intl plugin
+## 3) Klíčové příkazy
+```zsh
+npm run dev      # spustí dev server
+npm run build    # build + typová kontrola
+rm -rf .next      # vyčistit Next.js cache
 ```
 
-## Vícejazyčnost (i18n)
+## 4) Důležité API endpointy
+- `POST /api/admin/auth/login`  — přihlášení (cookie `admin_session`)
+- `GET /api/admin/ketubas`      — seznam ketubot (localized)
+- `PUT /api/admin/ketubas/[id]` — aktualizace (localized payload)
 
-### Podporované jazyky
-- **cs** (Čeština) - výchozí jazyk
-- **en** (English) - mezinárodní
-- **he** (עברית - Hebrejština) - RTL podpora
+## 5) Rychlé checklisty (pro PR/QA)
+- Ověřit, že `app/layout.tsx` importuje `./globals.css`.
+- Ujistit se, že admin UI posílá `name_cs` + `name_en` (nebo mapování existuje).
+- Po editaci env proměnných restartovat dev server.
 
-### Routing
-- Prefix-based: `/cs/`, `/en/`, `/he/`
-- Automatická detekce a redirect na výchozí locale
-- Zachování cesty při přepnutí jazyka (např. `/cs/produkt/1` → `/en/produkt/1`)
+---
 
-### Translation Files
-Struktura `messages/{locale}.json`:
-```json
-{
-  "common": { "loading", "error", "save", "cancel", ... },
-  "nav": { "home", "products", "about", "contact", "admin" },
-  "home": { "title", "subtitle", "viewDetails", ... },
-  "product": { "details", "priceLabel", "categoryLabel", ... },
-  "contact": { "title", "nameLabel", "emailLabel", ... },
-  "admin": {
-    "login": { ... },
-    "dashboard": { "title", "tabs": {"czech", "english", "hebrew"}, ... },
-    "pages": { ... }
-  }
-}
-```
+Potřebné (pokud byste chtěli víc): kompletní původní instrukce jsou archivovány v `.github/copilot-instructions-archived.md`.
 
-### Použití v komponentách
-
-**Client components**:
-```typescript
-import { useTranslations } from 'next-intl';
-const t = useTranslations();
-<h1>{t('home.title')}</h1>
-```
-
-**Server components**:
-```typescript
-import { getTranslations } from 'next-intl/server';
-const t = await getTranslations();
-<h1>{t('home.title')}</h1>
-```
-
-**RTL podpora**:
-```tsx
-<html lang={locale} dir={locale === 'he' ? 'rtl' : 'ltr'}>
-```
-
-## JWT Dual Runtime systém
-
-**Proč dva auth moduly?**
-
-Next.js middleware běží v **Edge Runtime**, který nepodporuje Node.js `crypto` modul. Proto:
-
-- `lib/auth.ts` - API routes (Node.js) - knihovna `jsonwebtoken`
-- `lib/auth-edge.ts` - Middleware (Edge) - knihovna `jose` (Web Crypto API)
-
-Oba používají stejný `JWT_SECRET` z `.env.local`.
-```
-
-## Databázové schéma
-
-### data/ketubas.json (🔜 PLÁNOVANÁ STRUKTURA)
-```json
-[
-  {
-    "id": 1,
-    "name_cs": "Krása nebeská",
-    "name_en": "Heavenly Beauty",
-    "name_he": "יופי שמימי",
-    "description_cs": "Tradiční ketuba s hebrejskými motivy",
-    "description_en": "Traditional ketuba with Hebrew motifs",
-    "description_he": "כתובה מסורתית עם מוטיבים עבריים",
-    "category_cs": "Tradiční",
-    "category_en": "Traditional",
-    "category_he": "מסורתי",
-    "price": 54545,
-    "image": "https://placehold.co/600x400",
-    "created_at": "ISO string",
-    "updated_at": "ISO string"
-  }
-]
-
-**DŮLEŽITÉ**: Obrázek (`image`) je **naprosto zásadní** pole - ketuba bez obrázku je v eshopu prakticky neprodejná.
-```
-
-### data/pages.json (🔜 NOVÝ SOUBOR)
-```json
-[
-  {
-    "id": 1,
-    "slug": "o-nas",
-    "title_cs": "O nás",
-    "title_en": "About Us",
-    "title_he": "אודותינו",
-    "content_cs": "# Vítejte\nNaše příběh...",
-    "content_en": "# Welcome\nOur story...",
-    "content_he": "# ברוכים הבאים\nהסיפור שלנו...",
-    "meta_description_cs": "Zjistěte více o našem obchodě",
-    "meta_description_en": "Learn more about our shop",
-    "meta_description_he": "למידע נוסף על החנות שלנו",
-    "published": true,
-    "created_at": "ISO string",
-    "updated_at": "ISO string"
-  }
-]
-```
-
-### data/users.json
 ```json
 [
   {
