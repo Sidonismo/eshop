@@ -1,3 +1,39 @@
+## Oprava 404 na všech URL (12/2025)
+
+### Kontext
+Projekt používá next-intl s prefixovými locale routami (`/cs`, `/en`, `/he`) a kombinovaný middleware (i18n + JWT).
+
+### Kdy se zobrazí 404
+- Locale je neplatné nebo chybí (dříve `notFound()` v `lib/i18n.ts`).
+- Cesta obchází middleware matcher (např. interní nebo špatně napsané URL).
+- Chyby při načítání překladů (`messages/*.json`) – nevalidní JSON, duplicitní klíče.
+
+### Změny pro stabilitu
+- `lib/i18n.ts`: Přidán bezpečný fallback na výchozí locale `cs` místo striktního `notFound()`.
+  - Díky tomu se v dev režimu minimalizují 404 kvůli locale.
+- `app/[locale]/page.tsx`: Odstraněn import `data/products.ts` (typový konflikt `id: string`) a přidán malý `fallbackProducts` s kompatibilními typy.
+- Po větších změnách vymazat `.next` cache a restartovat dev server.
+
+### Rychlé postupy (pro admina)
+- Vyčištění cache a restart:
+  ```zsh
+  rm -rf .next
+  npm run dev
+  ```
+- Ověření routování:
+  - `http://localhost:3000/` → redirect na `/cs`
+  - `http://localhost:3000/cs`, `…/en`, `…/he`
+
+### Poznámky k middleware
+- Middleware chrání `/admin/dashboard` a `/api/admin/*` pomocí JWT (cookie `admin_session`).
+- i18n middleware je aplikován na veřejné cesty a vždy vynucuje prefix locale.
+- Matcher: `'/((?!_next|.*\..*).*)'` – ignoruje Next.js internals a statické soubory.
+
+### Best practices
+- Překlady v `messages/*`: udržovat validní JSON bez duplicit.
+- Při refaktorech typů udržovat kompatibilitu mezi daty z API a fallback daty.
+- V produkci ponechat striktnější chování (404) a zvážit guardy v middleware.
+
 # Dokumentace administračního rozhraní
 
 ## Přehled
@@ -27,6 +63,8 @@ Změny v adminu se automaticky projeví na veřejných stránkách eshopu.
 - ✅ **Zod validace** - runtime validace všech vstupů
 - 🔒 **Secure cookies** - httpOnly, sameSite, secure flags
 - ✅ **Centralizované typy** - TypeScript typy v samostatných souborech
+- 🌍 **Vícejazyčnost** - databáze podporuje cs/en/he (7.12.2025)
+- ⏳ **Multi-language admin UI** - ČEKÁ NA IMPLEMENTACI
 
 ## Struktura souborů
 
