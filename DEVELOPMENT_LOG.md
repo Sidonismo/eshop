@@ -1693,3 +1693,50 @@ Terminal output ukázal:
 - Přidat `rel="prev"/"next"` meta odkazy a canonical tagy pro SEO.
 - Zvážit přechod na `next/image` pro optimalizaci obrázků (včetně `next.config.js` pro externí domény).
 
+---
+
+## 📅 Datum: 7. prosince 2025 (SEO metadata)
+
+### 🎯 Úkol: Přidat canonical a rel="prev"/"next" pro paginaci
+
+#### ✅ Provedené změny
+
+- Do serverové paginované stránky `app/[locale]/page/[page]/page.tsx` byly vloženy link tagy pro **canonical**, **rel="prev"** a **rel="next"**.
+- Tagy používají `NEXT_PUBLIC_SITE_URL` jako základní doménu s fallbackem na `http://localhost:3000` pro lokální testování.
+
+#### 📝 Poznámky
+
+- Doporučeno nastavit `NEXT_PUBLIC_SITE_URL` v `.env.local` na produkční URL před spuštěním buildu, aby canonicaly ukazovaly na správnou doménu.
+- Toto zlepšuje SEO a pomáhá vyhledávačům správně indexovat paginované sekce katalogu.
+
+
+---
+
+## ❌ Nezdary agenta (záznam chyb) — 7. 12. 2025
+
+Níže jsou stručně zapsány chyby a neúspěchy, které jsem během této pracovní session způsobil nebo které nastaly kvůli mým zásahům. Záznam je psán transparentně a obsahuje krátké poznámky o následné opravě.
+
+- Syntaxická chyba v `app/[locale]/page/[page]/page.tsx` (Unexpected token / unexpected eof):
+   - Popis: Build hlásil `Unexpected token. Did you mean {'} or &rbrace;` a ukazoval na konec souboru (EOF).
+   - Příčina: Do souboru byl vložen neuzavřený nebo poškozený JSX blok při předchozích úpravách.
+   - Akce: Plánoval jsem přepsání souboru čistou verzí a opravu uzávorek; opravuje se v dalším kroku.
+
+- Chyba při použití patch nástroje (apply_patch) — chybějící `explanation` v prvním pokusu:
+   - Popis: Při pokusu o aplikaci patche jsem omylem neposkytl vysvětlení v nástroji, což vedlo k neúplnému volání nástroje.
+   - Příčina: Lidská/agentní chyba v sestavení volání nástroje.
+   - Akce: Znovu jsem volání provedl se správným parametrem `explanation` a patch se aplikoval úspěšně.
+
+- Dočasné chybné editování přeložených stringů (ReferenceError `t is not defined`):
+   - Popis: Na produktu jsem odstranil/nebezpečně použil serverovou helper funkci pro překlady, což způsobilo ReferenceError při renderu.
+   - Příčina: Smíchání server/client helperů a volání, které není bezpečné na serveru bez kontextu next-intl.
+   - Akce: Nahradil jsem volání bezpečnějšími inline texty nebo správným získáním překladů; chyba byla opravena.
+
+- Počáteční git commit chyba (neúspěšné volání), následované úspěšným commitem:
+   - Popis: Předchozí pokus o `git commit` selhal (interní chyba nástroje), následně jsem soubory znovu přidal a commit úspěšně proběhl.
+   - Příčina: Dočasný problém se stagingem v rámci automatizovaného příkazu; vyřešeno ručním add + commit.
+
+---
+
+Poznámka: Zapsal jsem tyto nezdary, abych měl audit trail a aby byly chyby transparentní. Pokud chcete, mohu tento záznam rozšířit o přesné commit hash, konkrétní patche a odkazy na upravené soubory.
+
+
