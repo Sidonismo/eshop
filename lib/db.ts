@@ -5,13 +5,13 @@
  * Používá jednoduché JSON soubory pro ukládání dat.
  *
  * Databázové "tabulky":
- * - ketubas.json: seznam ketubot
+ * - ketubas.json: seznam ketubot (LocalizedKetuba formát)
  * - users.json: admin uživatelé
  */
 
 import fs from 'fs';
 import path from 'path';
-import type { Ketuba, CreateKetubaInput } from '@/types/ketuba';
+import type { Ketuba, LocalizedKetuba, CreateKetubaInput, CreateLocalizedKetubaInput } from '@/types/ketuba';
 import type { User } from '@/types/user';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -41,8 +41,9 @@ export function initDatabase(): void {
 
 /**
  * Načtení všech ketubot
+ * Nyní vrací LocalizedKetuba typy z databáze
  */
-export function getAllKetubas(): Ketuba[] {
+export function getAllKetubas(): LocalizedKetuba[] {
   initDatabase();
   const data = fs.readFileSync(KETUBAS_FILE, 'utf-8');
   return JSON.parse(data);
@@ -51,20 +52,20 @@ export function getAllKetubas(): Ketuba[] {
 /**
  * Získání ketuboty podle ID
  */
-export function getKetubaById(id: number): Ketuba | null {
+export function getKetubaById(id: number): LocalizedKetuba | null {
   const ketubas = getAllKetubas();
   return ketubas.find(k => k.id === id) || null;
 }
 
 /**
- * Vytvoření nové ketuboty
+ * Vytvoření nové lokalizované ketuboty
  */
-export function createKetuba(ketuba: CreateKetubaInput): Ketuba {
+export function createKetuba(ketuba: CreateLocalizedKetubaInput): LocalizedKetuba {
   const ketubas = getAllKetubas();
 
   // Najdi největší ID a přidej 1
   const maxId = ketubas.length > 0 ? Math.max(...ketubas.map(k => k.id!)) : 0;
-  const newKetuba: Ketuba = {
+  const newKetuba: LocalizedKetuba = {
     ...ketuba,
     id: maxId + 1,
     created_at: new Date().toISOString(),
@@ -80,7 +81,7 @@ export function createKetuba(ketuba: CreateKetubaInput): Ketuba {
 /**
  * Aktualizace ketuboty
  */
-export function updateKetuba(id: number, updates: Partial<Ketuba>): boolean {
+export function updateKetuba(id: number, updates: Partial<LocalizedKetuba>): boolean {
   const ketubas = getAllKetubas();
   const index = ketubas.findIndex(k => k.id === id);
 
