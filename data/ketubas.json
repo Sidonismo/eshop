@@ -1,19 +1,19 @@
 [
   {
     "id": 1,
-    "name_cs": "Krása nebeská",
-    "name_en": "Heavenly Beauty",
-    "name_he": "יופי שמימי",
-    "description_cs": "Tradiční ketuba s hebrejskými motivy",
-    "description_en": "Traditional ketuba with Hebrew motifs",
-    "description_he": "כתובה מסורתית עם מוטיבים עבריים",
+    "name_cs": "Krása nebeská 3",
+    "name_en": "Krása nebeská 3",
+    "name_he": "",
+    "description_cs": "Tradiční ketuba s hebrejskými motivy 4",
+    "description_en": "Tradiční ketuba s hebrejskými motivy 4",
+    "description_he": "",
     "category_cs": "Tradiční",
-    "category_en": "Traditional",
-    "category_he": "מסורתי",
-    "price": 54545,
+    "category_en": "Tradiční",
+    "category_he": "",
+    "price": 11111,
     "image": "https://placehold.co/600x400",
     "created_at": "2025-12-06T17:36:40.616Z",
-    "updated_at": "2025-12-07T12:00:00.000Z"
+    "updated_at": "2025-12-07T15:02:44.439Z"
   },
   {
     "id": 2,
