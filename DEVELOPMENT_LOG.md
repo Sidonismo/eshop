@@ -810,3 +810,162 @@ JWT_SECRET=your-super-secret-key-change-this-in-production
 - Next.js Image optimization
 
 **Status projektu**: 🚀 **VÝRAZNĚ BEZPEČNĚJŠÍ A ROBUSTNĚJŠÍ**
+
+---
+
+## 📅 Datum: 7. prosince 2025
+
+### 🎯 Úkol: Debug a oprava JWT autentizace
+
+#### ❌ Problémy a jejich řešení
+
+**Problém 1: Login nefunguje - validace hesla**
+- **Chyba**: `POST /api/admin/auth/login 400` - Heslo "admin" (5 znaků) nevyhovělo Zod validaci (min 6)
+- **Příčina**: `loginSchema` vyžaduje minimálně 6 znaků, ale heslo v databázi bylo "admin"
+- **Řešení**: Změněno heslo na "Admin_123" (9 znaků)
+- **Výsledek**: ✅ Login vrací 200 OK
+
+**Problém 2: Cookie se nenastavuje v prohlížeči**
+- **Chyba**: V DevTools viditelná pouze `__next_hmr_refresh_hash__`, ne `admin_session`
+- **Příčina**: Chybějící `credentials: 'include'` ve fetch požadavku
+- **Řešení**: 
+  ```typescript
+  // Před:
+  fetch('/api/admin/auth/login', { method: 'POST', ... })
+  
+  // Po:
+  fetch('/api/admin/auth/login', { 
+    method: 'POST',
+    credentials: 'include',  // ← KLÍČOVÉ!
+    ...
+  })
+  ```
+- **Výsledek**: ✅ Cookie `admin_session` se úspěšně nastavuje
+
+**Problém 3: JWT_SECRET nebyl nastaven**
+- **Chyba**: JWT token používal výchozí secret místo konfigurovatelného
+- **Příčina**: Soubor `.env.local` neobsahoval `JWT_SECRET`
+- **Řešení**: Přidáno do `.env.local`:
+  ```env
+  JWT_SECRET=super-tajny-klic-pro-jwt-tokeny-zmenit-v-produkci-1234567890abcdef
+  ```
+- **Poznámka**: Next.js MUSÍ být restartován po změně .env souborů
+- **Výsledek**: ✅ JWT tokeny používají správný secret
+
+**Problém 4: Edge Runtime nepodporuje crypto modul** ⚠️ **KRITICKÝ**
+- **Chyba**: `The edge runtime does not support Node.js 'crypto' module`
+- **Příčina**: Next.js middleware běží v Edge Runtime, knihovna `jsonwebtoken` vyžaduje Node.js crypto
+- **Debug log**:
+  ```
+  🔒 Middleware check: /admin/dashboard
+  🍪 Token exists: true
+  ❌ Token verification failed: The edge runtime does not support Node.js 'crypto' module
+  ```
+- **Pokus 1**: ❌ `export const runtime = 'nodejs'` v middleware.ts - NEFUNGUJE (middleware MUSÍ běžet v Edge)
+- **Řešení**: 
+  1. Instalace Edge-kompatibilní JWT knihovny: `npm install jose`
+  2. Vytvoření nového modulu `lib/auth-edge.ts`:
+     ```typescript
+     import { SignJWT, jwtVerify } from 'jose';
+     
+     export async function verifyTokenEdge(token: string): Promise<TokenPayload | null> {
+       const secret = new TextEncoder().encode(process.env.JWT_SECRET || '...');
+       const { payload } = await jwtVerify(token, secret);
+       return payload as TokenPayload;
+     }
+     ```
+  3. Úprava `middleware.ts`:
+     ```typescript
+     // Před:
+     import { verifyToken } from '@/lib/auth';
+     export function middleware(request: NextRequest) {
+       const payload = verifyToken(token);
+     }
+     
+     // Po:
+     import { verifyTokenEdge } from '@/lib/auth-edge';
+     export async function middleware(request: NextRequest) {
+       const payload = await verifyTokenEdge(token);
+     }
+     ```
+- **Výsledek**: ✅ **ÚSPĚŠNĚ VYŘEŠENO**
+  ```
+  🔒 Middleware check: /admin/dashboard
+  🍪 Token exists: true
+  ✅ Token decoded (Edge): admin
+  ✅ Token valid: true
+  ✅ Access granted to: /admin/dashboard
+  GET /admin/dashboard 200 in 3099ms
+  ```
+
+#### ✅ Finální implementace
+
+**Dual JWT systém**:
+- `lib/auth.ts` - Node.js runtime (API routes) - používá `jsonwebtoken`
+- `lib/auth-edge.ts` - Edge runtime (middleware) - používá `jose`
+- Oba sdílejí stejný `JWT_SECRET` z environment variables
+
+**Cookie konfigurace**:
+```typescript
+response.cookies.set('admin_session', token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',  // HTTPS v produkci
+  sameSite: 'lax',
+  maxAge: 60 * 60 * 24,  // 24 hodin
+  path: '/',
+});
+```
+
+**Middleware matcher**:
+```typescript
+export const config = {
+  matcher: [
+    '/admin/dashboard',           // Samotný dashboard
+    '/admin/dashboard/:path*',    // Nested cesty
+    '/api/admin/ketubas/:path*',  // API endpointy
+  ],
+};
+```
+
+#### 📝 Klíčové poznatky
+
+1. **Edge Runtime omezení**:
+   - Middleware v Next.js 15 VŽDY běží v Edge Runtime
+   - Edge Runtime nepodporuje Node.js crypto modul
+   - Řešení: `jose` (Web Crypto API kompatibilní)
+
+2. **Cookie handling**:
+   - `credentials: 'include'` je POVINNÉ pro cross-origin cookies
+   - `response.cookies.set()` místo `cookies().set()` v App Router
+
+3. **Environment variables**:
+   - Next.js cachuje .env při startu serveru
+   - Po změně .env NUTNÝ RESTART serveru
+   - `.env.local` má prioritu před `.env`
+
+4. **Debug strategie**:
+   - Console logy s emoji pro přehlednost (🔒🍪✅❌🔑)
+   - Postupné odhalování problému (cookie → secret → runtime)
+   - Testování po jednotlivých vrstvách (API → cookie → middleware)
+
+#### 📊 Výsledný stav
+
+✅ **Plně funkční autentizace**:
+- Login endpoint vrací 200 + JWT cookie
+- Cookie se správně nastavuje v prohlížeči
+- Middleware validuje JWT tokeny
+- Redirect na dashboard funguje
+- CRUD operace v dashboardu přístupné
+
+**Nové dependencies**:
+```json
+{
+  "jose": "^5.x.x"  // Edge Runtime JWT library
+}
+```
+
+**Nové soubory**:
+- `lib/auth-edge.ts` - Edge Runtime JWT utilities
+
+**Status**: 🎉 **AUTENTIZACE PLNĚ FUNKČNÍ**
+

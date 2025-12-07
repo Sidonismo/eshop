@@ -52,7 +52,8 @@ app/
 │               └── route.ts   # GET, PUT, DELETE pro konkrétní ketubu
 lib/
 ├── db.ts                      # Databázový modul (JSON operace)
-├── auth.ts                    # JWT autentizační funkce
+├── auth.ts                    # JWT autentizační funkce (Node.js runtime)
+├── auth-edge.ts               # JWT autentizační funkce (Edge runtime - middleware)
 └── validation.ts              # Zod validační schémata
 types/
 ├── ketuba.ts                  # TypeScript typy pro Ketubu
@@ -61,6 +62,62 @@ data/
 ├── ketubas.json               # JSON databáze ketubot
 └── users.json                 # JSON databáze uživatelů
 middleware.ts                  # Next.js middleware (ochrana admin routes)
+```
+
+## JWT Autentizace - Dual Runtime systém
+
+### Proč dva auth moduly?
+
+Next.js middleware běží v **Edge Runtime**, který nepodporuje Node.js `crypto` modul. Standardní JWT knihovna `jsonwebtoken` ho však vyžaduje. Proto používáme:
+
+- **lib/auth.ts** - Pro API routes (Node.js runtime) - knihovna `jsonwebtoken`
+- **lib/auth-edge.ts** - Pro middleware (Edge runtime) - knihovna `jose` (Web Crypto API)
+
+Oba moduly používají **stejný JWT_SECRET** z environment variables.
+
+### Technické detaily
+
+**Node.js runtime (`lib/auth.ts`)**:
+```typescript
+import jwt from 'jsonwebtoken';
+
+export function generateToken(username: string): string {
+  const secret = process.env.JWT_SECRET || 'fallback';
+  return jwt.sign({ username }, secret, { expiresIn: '24h' });
+}
+
+export function verifyToken(token: string): TokenPayload | null {
+  const secret = process.env.JWT_SECRET || 'fallback';
+  return jwt.verify(token, secret) as TokenPayload;
+}
+```
+
+**Edge runtime (`lib/auth-edge.ts`)**:
+```typescript
+import { jwtVerify } from 'jose';
+
+export async function verifyTokenEdge(token: string): Promise<TokenPayload | null> {
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback');
+  const { payload } = await jwtVerify(token, secret);
+  return payload as TokenPayload;
+}
+```
+
+**Klíčové rozdíly**:
+- Edge verze je **async** (Web Crypto API)
+- Edge verze vyžaduje secret jako `Uint8Array` (TextEncoder)
+- Oba sdílejí stejný `TokenPayload` typ
+
+### Dependencies
+
+```json
+{
+  "jsonwebtoken": "^9.x.x",      // Node.js JWT
+  "jose": "^5.x.x",               // Edge Runtime JWT
+  "bcryptjs": "^2.x.x",           // Password hashing
+  "zod": "^3.x.x"                 // Validace
+}
+
 ```
 
 ## Nastavení a spuštění
@@ -473,18 +530,47 @@ Obsahuje pole objektů s uživateli:
 
 ### Doporučení pro produkci
 
-⚠️ **Důležité**: Současná implementace je vhodná pro development. Pro produkci doporučujeme:
+⚠️ **Implementováno**:
 
-1. **JWT tokeny** místo jednoduchých cookies
-2. **Secure flag** pro cookies (HTTPS only)
-3. **CSRF protection**
-4. **Rate limiting** na login endpointu
-5. **Middleware** pro ochranu admin routes
-6. **Odstranit nebo zabezpečit** init endpoint
-7. **Environment variables** pro secrets
-8. **Pravidelná rotace** session tokenů
-9. **2FA autentizace** (volitelně)
-10. **Audit log** pro admin akce
+✅ **JWT tokeny** - Implementováno (dual runtime systém)  
+✅ **Secure flag** pro cookies - Implementováno (automaticky v produkci)  
+✅ **Middleware** pro ochranu admin routes - Implementováno  
+✅ **Environment variables** pro secrets - Implementováno (JWT_SECRET)  
+✅ **Zod validace** - Implementováno pro všechny API endpointy  
+✅ **Centralizované typy** - Implementováno (types/)
+
+⚠️ **Doporučujeme přidat**:
+
+1. **CSRF protection** - Token validace pro formuláře
+2. **Rate limiting** - Ochrana proti brute force útokům
+3. **Odstranit nebo zabezpečit** init endpoint v produkci
+4. **Pravidelná rotace** session tokenů (refresh tokens)
+5. **2FA autentizace** (volitelně)
+6. **Audit log** pro admin akce
+
+### Bezpečnostní funkce (implementováno)
+
+**JWT Autentizace**:
+- 🔒 Tokeny s automatickou expirací (24h)
+- 🔒 Podepsané pomocí JWT_SECRET
+- 🔒 Dual runtime systém (Node.js + Edge)
+
+**Secure Cookies**:
+- 🔒 `httpOnly: true` - Ochrana před XSS
+- 🔒 `secure: true` - HTTPS only v produkci
+- 🔒 `sameSite: 'lax'` - Ochrana před CSRF
+
+**Middleware ochrana**:
+- 🔒 Automatická validace JWT při každém požadavku
+- 🔒 Chrání `/admin/dashboard` a `/api/admin/ketubas/*`
+- 🔒 Běží v Edge Runtime (rychlé, globální)
+
+**Zod validace**:
+- ✅ Runtime validace všech API vstupů
+- ✅ Type-safe schemas
+- ✅ Automatická sanitizace (trim, toLowerCase)
+- ✅ Limity na délky stringů
+- ✅ URL a email formát validace
 
 ## Propojení s veřejnými stránkami
 

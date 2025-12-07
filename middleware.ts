@@ -14,9 +14,9 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyTokenEdge } from '@/lib/auth-edge';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Získej JWT token z cookie
   const token = request.cookies.get('admin_session')?.value;
 
@@ -25,8 +25,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/admin/login', request.url));
   }
 
-  // Ověř platnost JWT tokenu
-  const payload = verifyToken(token);
+  // Ověř platnost JWT tokenu (async kvůli Edge Runtime)
+  const payload = await verifyTokenEdge(token);
 
   // Pokud je token neplatný nebo expirovaný, přesměruj na login
   if (!payload) {
@@ -53,7 +53,8 @@ export function middleware(request: NextRequest) {
  */
 export const config = {
   matcher: [
-    '/admin/dashboard/:path*',
-    '/api/admin/ketubas/:path*',
+    '/admin/dashboard',           // Samotný dashboard
+    '/admin/dashboard/:path*',    // Nested cesty pod dashboard
+    '/api/admin/ketubas/:path*',  // API endpointy
   ],
 };
