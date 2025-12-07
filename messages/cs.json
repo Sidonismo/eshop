@@ -1,0 +1,110 @@
+{
+  "common": {
+    "language": "Jazyk",
+    "loading": "Načítání...",
+    "error": "Chyba",
+    "save": "Uložit",
+    "cancel": "Zrušit",
+    "delete": "Smazat",
+    "edit": "Upravit",
+    "create": "Vytvořit",
+    "back": "Zpět",
+    "price": "Cena",
+    "category": "Kategorie",
+    "image": "Obrázek",
+    "name": "Název",
+    "description": "Popis"
+  },
+  "nav": {
+    "home": "Domů",
+    "products": "Produkty",
+    "about": "O nás",
+    "contact": "Kontakt",
+    "admin": "Administrace"
+  },
+  "home": {
+    "title": "Ketuboty - Tradiční židovské sňatkové smlouvy",
+    "subtitle": "Ručně vyráběné ketuboty pro váš velký den",
+    "viewDetails": "Zobrazit detail",
+    "noProducts": "Zatím nejsou žádné produkty k dispozici.",
+    "loadingProducts": "Načítám produkty..."
+  },
+  "product": {
+    "details": "Detail produktu",
+    "priceLabel": "Cena",
+    "categoryLabel": "Kategorie",
+    "contactUs": "Pro objednání nás kontaktujte",
+    "backToProducts": "Zpět na produkty",
+    "notFound": "Produkt nenalezen",
+    "uncategorized": "nezařazeno"
+  },
+  "contact": {
+    "title": "Kontaktujte nás",
+    "subtitle": "Máte dotaz? Napište nám!",
+    "nameLabel": "Jméno",
+    "namePlaceholder": "Vaše jméno",
+    "emailLabel": "Email",
+    "emailPlaceholder": "vas@email.cz",
+    "phoneLabel": "Telefon (volitelné)",
+    "phonePlaceholder": "+420 123 456 789",
+    "messageLabel": "Zpráva",
+    "messagePlaceholder": "Vaše zpráva...",
+    "submit": "Odeslat zprávu",
+    "sending": "Odesílám...",
+    "successTitle": "Děkujeme!",
+    "successMessage": "Vaše zpráva byla úspěšně odeslána. Ozveme se vám co nejdříve.",
+    "errorTitle": "Chyba při odesílání",
+    "errorMessage": "Omlouváme se, ale zprávu se nepodařilo odeslat. Zkuste to prosím znovu."
+  },
+  "admin": {
+    "login": {
+      "title": "Přihlášení do administrace",
+      "username": "Uživatelské jméno",
+      "password": "Heslo",
+      "submit": "Přihlásit se",
+      "loggingIn": "Přihlašuji...",
+      "error": "Nesprávné přihlašovací údaje"
+    },
+    "dashboard": {
+      "title": "Admin Dashboard - Správa ketubot",
+      "logout": "Odhlásit se",
+      "addNew": "Přidat novou ketubu",
+      "editKetuba": "Upravit ketubu",
+      "createKetuba": "Vytvořit novou ketubu",
+      "noProducts": "Zatím nejsou žádné ketuboty.",
+      "loading": "Načítám ketuboty...",
+      "confirmDelete": "Opravdu chcete smazat tuto ketubu?",
+      "imagePreview": "Náhled obrázku",
+      "noImage": "Žádný obrázek",
+      "formImageUrl": "URL obrázku",
+      "formImagePlaceholder": "https://example.com/image.jpg",
+      "formName": "Název",
+      "formNamePlaceholder": "Název ketuboty",
+      "formDescription": "Popis",
+      "formDescriptionPlaceholder": "Popis ketuboty...",
+      "formPrice": "Cena (Kč)",
+      "formPricePlaceholder": "2500",
+      "formCategory": "Kategorie",
+      "formCategoryPlaceholder": "Tradiční, Moderní...",
+      "tabs": {
+        "czech": "Čeština",
+        "english": "Angličtina",
+        "hebrew": "Hebrejština"
+      }
+    },
+    "pages": {
+      "title": "Správa stránek",
+      "addNew": "Přidat novou stránku",
+      "editPage": "Upravit stránku",
+      "createPage": "Vytvořit novou stránku",
+      "noPages": "Zatím nejsou žádné stránky.",
+      "slug": "URL slug",
+      "slugPlaceholder": "o-nas",
+      "pageTitle": "Nadpis",
+      "content": "Obsah",
+      "metaDescription": "Meta popis (SEO)",
+      "published": "Publikováno",
+      "draft": "Koncept"
+    }
+  }
+}

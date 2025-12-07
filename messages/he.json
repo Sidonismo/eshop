@@ -1,0 +1,110 @@
+{
+  "common": {
+    "language": "שפה",
+    "loading": "טוען...",
+    "error": "שגיאה",
+    "save": "שמור",
+    "cancel": "בטל",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "create": "צור",
+    "back": "חזור",
+    "price": "מחיר",
+    "category": "קטגוריה",
+    "image": "תמונה",
+    "name": "שם",
+    "description": "תיאור"
+  },
+  "nav": {
+    "home": "בית",
+    "products": "מוצרים",
+    "about": "אודות",
+    "contact": "צור קשר",
+    "admin": "ניהול"
+  },
+  "home": {
+    "title": "כתובות - חוזי נישואין יהודיים מסורתיים",
+    "subtitle": "כתובות בעבודת יד ליום המיוחד שלכם",
+    "viewDetails": "צפה בפרטים",
+    "noProducts": "אין מוצרים זמינים כרגע.",
+    "loadingProducts": "טוען מוצרים..."
+  },
+  "product": {
+    "details": "פרטי מוצר",
+    "priceLabel": "מחיר",
+    "categoryLabel": "קטגוריה",
+    "contactUs": "צור קשר להזמנה",
+    "backToProducts": "חזרה למוצרים",
+    "notFound": "המוצר לא נמצא",
+    "uncategorized": "לא מסווג"
+  },
+  "contact": {
+    "title": "צור קשר",
+    "subtitle": "יש לך שאלה? שלח לנו הודעה!",
+    "nameLabel": "שם",
+    "namePlaceholder": "השם שלך",
+    "emailLabel": "אימייל",
+    "emailPlaceholder": "your@email.com",
+    "phoneLabel": "טלפון (אופציונלי)",
+    "phonePlaceholder": "+972 50 123 4567",
+    "messageLabel": "הודעה",
+    "messagePlaceholder": "ההודעה שלך...",
+    "submit": "שלח הודעה",
+    "sending": "שולח...",
+    "successTitle": "תודה!",
+    "successMessage": "ההודעה נשלחה בהצלחה. ניצור איתך קשר בהקדם.",
+    "errorTitle": "שגיאה בשליחת ההודעה",
+    "errorMessage": "מצטערים, לא ניתן היה לשלוח את ההודעה. נסה שוב."
+  },
+  "admin": {
+    "login": {
+      "title": "כניסה לניהול",
+      "username": "שם משתמש",
+      "password": "סיסמה",
+      "submit": "התחבר",
+      "loggingIn": "מתחבר...",
+      "error": "פרטי התחברות שגויים"
+    },
+    "dashboard": {
+      "title": "לוח בקרה - ניהול כתובות",
+      "logout": "התנתק",
+      "addNew": "הוסף כתובה חדשה",
+      "editKetuba": "ערוך כתובה",
+      "createKetuba": "צור כתובה חדשה",
+      "noProducts": "אין כתובות עדיין.",
+      "loading": "טוען כתובות...",
+      "confirmDelete": "האם אתה בטוח שברצונך למחוק כתובה זו?",
+      "imagePreview": "תצוגה מקדימה",
+      "noImage": "אין תמונה",
+      "formImageUrl": "כתובת URL של תמונה",
+      "formImagePlaceholder": "https://example.com/image.jpg",
+      "formName": "שם",
+      "formNamePlaceholder": "שם הכתובה",
+      "formDescription": "תיאור",
+      "formDescriptionPlaceholder": "תיאור הכתובה...",
+      "formPrice": "מחיר (CZK)",
+      "formPricePlaceholder": "2500",
+      "formCategory": "קטגוריה",
+      "formCategoryPlaceholder": "מסורתי, מודרני...",
+      "tabs": {
+        "czech": "צ'כית",
+        "english": "אנגלית",
+        "hebrew": "עברית"
+      }
+    },
+    "pages": {
+      "title": "ניהול עמודים",
+      "addNew": "הוסף עמוד חדש",
+      "editPage": "ערוך עמוד",
+      "createPage": "צור עמוד חדש",
+      "noPages": "אין עמודים עדיין.",
+      "slug": "כתובת URL",
+      "slugPlaceholder": "אודותינו",
+      "pageTitle": "כותרת",
+      "content": "תוכן",
+      "metaDescription": "תיאור מטא (SEO)",
+      "published": "מפורסם",
+      "draft": "טיוטה"
+    }
+  }
+}

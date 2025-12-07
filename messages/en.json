@@ -1,0 +1,110 @@
+{
+  "common": {
+    "language": "Language",
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back",
+    "price": "Price",
+    "category": "Category",
+    "image": "Image",
+    "name": "Name",
+    "description": "Description"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "about": "About",
+    "contact": "Contact",
+    "admin": "Administration"
+  },
+  "home": {
+    "title": "Ketubas - Traditional Jewish Marriage Contracts",
+    "subtitle": "Handcrafted ketubas for your special day",
+    "viewDetails": "View details",
+    "noProducts": "No products available yet.",
+    "loadingProducts": "Loading products..."
+  },
+  "product": {
+    "details": "Product Details",
+    "priceLabel": "Price",
+    "categoryLabel": "Category",
+    "contactUs": "Contact us to order",
+    "backToProducts": "Back to products",
+    "notFound": "Product not found",
+    "uncategorized": "uncategorized"
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "Have a question? Send us a message!",
+    "nameLabel": "Name",
+    "namePlaceholder": "Your name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "your@email.com",
+    "phoneLabel": "Phone (optional)",
+    "phonePlaceholder": "+420 123 456 789",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Your message...",
+    "submit": "Send message",
+    "sending": "Sending...",
+    "successTitle": "Thank you!",
+    "successMessage": "Your message has been sent successfully. We'll get back to you as soon as possible.",
+    "errorTitle": "Error sending message",
+    "errorMessage": "We're sorry, but the message could not be sent. Please try again."
+  },
+  "admin": {
+    "login": {
+      "title": "Admin Login",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Log in",
+      "loggingIn": "Logging in...",
+      "error": "Invalid credentials"
+    },
+    "dashboard": {
+      "title": "Admin Dashboard - Ketuba Management",
+      "logout": "Log out",
+      "addNew": "Add new ketuba",
+      "editKetuba": "Edit ketuba",
+      "createKetuba": "Create new ketuba",
+      "noProducts": "No ketubas yet.",
+      "loading": "Loading ketubas...",
+      "confirmDelete": "Are you sure you want to delete this ketuba?",
+      "imagePreview": "Image preview",
+      "noImage": "No image",
+      "formImageUrl": "Image URL",
+      "formImagePlaceholder": "https://example.com/image.jpg",
+      "formName": "Name",
+      "formNamePlaceholder": "Ketuba name",
+      "formDescription": "Description",
+      "formDescriptionPlaceholder": "Ketuba description...",
+      "formPrice": "Price (CZK)",
+      "formPricePlaceholder": "2500",
+      "formCategory": "Category",
+      "formCategoryPlaceholder": "Traditional, Modern...",
+      "tabs": {
+        "czech": "Czech",
+        "english": "English",
+        "hebrew": "Hebrew"
+      }
+    },
+    "pages": {
+      "title": "Page Management",
+      "addNew": "Add New Page",
+      "editPage": "Edit Page",
+      "createPage": "Create New Page",
+      "noPages": "No pages yet.",
+      "slug": "URL slug",
+      "slugPlaceholder": "about-us",
+      "pageTitle": "Title",
+      "content": "Content",
+      "metaDescription": "Meta Description (SEO)",
+      "published": "Published",
+      "draft": "Draft"
+    }
+  }
+}
