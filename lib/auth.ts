@@ -32,7 +32,8 @@ export interface TokenPayload {
  * @returns JWT token string
  */
 export function generateToken(username: string): string {
-  return jwt.sign({ username }, JWT_SECRET, {
+  const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+  return jwt.sign({ username }, secret, {
     expiresIn: TOKEN_EXPIRY,
   });
 }
@@ -45,7 +46,8 @@ export function generateToken(username: string): string {
  */
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+    const decoded = jwt.verify(token, secret) as TokenPayload;
     return decoded;
   } catch (error) {
     // Token je neplatný nebo expirovaný

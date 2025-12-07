@@ -38,7 +38,8 @@ data/
 
 lib/
 ├── db.ts                       # Databázový modul (JSON operace)
-├── auth.ts                     # JWT autentizační funkce
+├── auth.ts                     # JWT autentizační funkce (Node.js runtime)
+├── auth-edge.ts                # JWT autentizační funkce (Edge runtime)
 └── validation.ts               # Zod validační schémata
 
 types/
@@ -46,6 +47,18 @@ types/
 └── user.ts                     # TypeScript typy pro Uživatele
 
 middleware.ts                   # Next.js middleware (ochrana admin routes)
+```
+
+## JWT Dual Runtime systém
+
+**Proč dva auth moduly?**
+
+Next.js middleware běží v **Edge Runtime**, který nepodporuje Node.js `crypto` modul. Proto:
+
+- `lib/auth.ts` - API routes (Node.js) - knihovna `jsonwebtoken`
+- `lib/auth-edge.ts` - Middleware (Edge) - knihovna `jose` (Web Crypto API)
+
+Oba používají stejný `JWT_SECRET` z `.env.local`.
 ```
 
 ## Databázové schéma
@@ -115,18 +128,35 @@ middleware.ts                   # Next.js middleware (ochrana admin routes)
 
 ### Bezpečnost
 
-#### JWT Autentizace (lib/auth.ts)
-- `generateToken(username)` - Vygeneruje JWT token s 24h expiraci
-- `verifyToken(token)` - Ověří platnost a signaturu tokenu
+#### JWT Autentizace - Dual Runtime systém
+
+**lib/auth.ts (Node.js runtime - API routes)**:
+- `generateToken(username)` - Vygeneruje JWT token s 24h expirací pomocí `jsonwebtoken`
+- `verifyToken(token)` - Ověří platnost a signaturu tokenu pomocí `jsonwebtoken`
 - `setAuthCookie(username)` - Nastaví secure cookie s JWT tokenem
 - `clearAuthCookie()` - Smaže session cookie
-- **ENV**: `JWT_SECRET` - musí být nastaven v `.env.local`
+
+**lib/auth-edge.ts (Edge runtime - middleware)**:
+- `verifyTokenEdge(token)` - Ověří platnost tokenu pomocí `jose` (Web Crypto API)
+- **Důvod**: Middleware běží v Edge Runtime, který nepodporuje Node.js crypto
+- **Async**: Edge verze je asynchronní kvůli Web Crypto API
+
+**Environment**:
+- `JWT_SECRET` - musí být nastaven v `.env.local`
+- Sdílený mezi oběma runtime verzemi
+
+**Dependencies**:
+- `jsonwebtoken` - Node.js JWT (API routes)
+- `jose` - Edge Runtime JWT (middleware)
+- `bcryptjs` - Password hashing
 
 #### Middleware ochrana (middleware.ts)
 - Chrání `/admin/dashboard` a `/api/admin/ketubas/*`
-- Automatická validace JWT tokenu
+- Automatická validace JWT tokenu pomocí `verifyTokenEdge()`
+- **Async middleware** - kvůli Edge Runtime JWT verifikaci
 - Přesměrování na login při neplatném tokenu
 - Nezasahuje do `/admin/login` a auth endpointů
+- Běží v Edge Runtime (rychlé, globální)
 
 #### Zod validace (lib/validation.ts)
 - `ketubaSchema` - validace ketuboty (name, price povinné, URL check, limits)
@@ -145,14 +175,21 @@ middleware.ts                   # Next.js middleware (ochrana admin routes)
 ```
 
 #### Bezpečnostní opatření
-- ✅ JWT tokeny s automatickou expiraci
+- ✅ JWT tokeny s automatickou expirací (dual runtime systém)
 - ✅ Secure HTTP-only cookies
-- ✅ Middleware ochrana admin routes
+- ✅ Middleware ochrana admin routes (Edge Runtime)
 - ✅ Zod runtime validace všech vstupů
 - ✅ Bcrypt hashing hesel (10 rounds)
 - ✅ URL a email formát validace
 - ✅ Input sanitizace (trim, toLowerCase)
+- ✅ `credentials: 'include'` pro správný přenos cookies
 - ⚠️ Pro produkci: rate limiting, CSRF tokens
+
+#### Známé Edge Runtime limitace
+- ❌ Edge Runtime nepodporuje Node.js `crypto` modul
+- ✅ Řešení: Použití `jose` (Web Crypto API) místo `jsonwebtoken`
+- ✅ Middleware musí být async kvůli `jose` API
+- ✅ Oba runtime systémy sdílejí stejný JWT_SECRET
 
 ### TypeScript typy
 - `types/ketuba.ts` - Ketuba, CreateKetubaInput, UpdateKetubaInput

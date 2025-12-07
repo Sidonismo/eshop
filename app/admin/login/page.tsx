@@ -30,6 +30,7 @@ export default function AdminLoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Důležité pro cookies!
         body: JSON.stringify(formData),
       });
 
@@ -37,7 +38,7 @@ export default function AdminLoginPage() {
 
       if (response.ok) {
         // Přesměruj na dashboard
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else {
         setStatus('error');
         setErrorMessage(data.error || 'Přihlášení se nezdařilo');
