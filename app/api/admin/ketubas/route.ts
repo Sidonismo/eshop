@@ -1,13 +1,13 @@
 /**
  * API endpoint pro správu ketubot (CRUD operace)
  *
- * GET: Získá seznam všech ketubot
- * POST: Vytvoří novou ketubu
+ * GET: Získá seznam všech ketubot (vrací LocalizedKetuba)
+ * POST: Vytvoří novou ketubu (očekává LocalizedKetuba formát)
  */
 
 import { NextResponse } from 'next/server';
 import { getAllKetubas, createKetuba } from '@/lib/db';
-import { ketubaSchema, validateData } from '@/lib/validation';
+import { localizedKetubaSchema, validateData } from '@/lib/validation';
 
 // GET - Získat všechny ketuboty
 export async function GET() {
@@ -28,8 +28,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Validace vstupních dat
-    const validation = validateData(ketubaSchema, body);
+    // Validace vstupních dat pomocí localizedKetubaSchema
+    const validation = validateData(localizedKetubaSchema, body);
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Nesprávná data', errors: validation.errors },
