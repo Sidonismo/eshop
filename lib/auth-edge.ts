@@ -62,4 +62,4 @@ export async function verifyTokenEdge(token: string): Promise<TokenPayload | nul
     return null;
   }
 }
-}
+
