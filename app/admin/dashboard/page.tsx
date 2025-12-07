@@ -21,6 +21,8 @@ interface Ketuba {
   price: number;
   image: string;
   category: string;
+  // Which locale the data was taken from (e.g. 'cs', 'en', 'he')
+  sourceLocale?: 'cs' | 'en' | 'he';
 }
 
 export default function AdminDashboardPage() {
@@ -47,7 +49,26 @@ export default function AdminDashboardPage() {
       const response = await fetch('/api/admin/ketubas');
       const data = await response.json();
       if (response.ok) {
-        setKetubas(data.ketubas);
+        // API returns localized ketubas (name_cs, name_en, ...).
+        // Map them to the simple Ketuba shape used by the admin UI.
+        const mapped = (data.ketubas || []).map((k: any) => {
+          const name = k.name_cs || k.name_en || k.name_he || '';
+          const description = k.description_cs || k.description_en || k.description_he || '';
+          const category = k.category_cs || k.category_en || k.category_he || '';
+          // Determine source locale by which name field exists
+          const sourceLocale: Ketuba['sourceLocale'] = k.name_cs ? 'cs' : k.name_en ? 'en' : k.name_he ? 'he' : undefined;
+
+          return {
+            id: k.id,
+            name,
+            description,
+            price: k.price || 0,
+            image: k.image || '',
+            category,
+            sourceLocale,
+          };
+        });
+        setKetubas(mapped);
       }
     } catch (error) {
       console.error('Chyba při načítání ketubot:', error);
@@ -63,21 +84,37 @@ export default function AdminDashboardPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const url = editingKetuba
       ? `/api/admin/ketubas/${editingKetuba.id}`
       : '/api/admin/ketubas';
 
     const method = editingKetuba ? 'PUT' : 'POST';
 
+    // Map single-language admin form to localized payload expected by API
+    const payload = {
+      name_cs: formData.name || '',
+      description_cs: formData.description || '',
+      category_cs: formData.category || '',
+
+      // Duplicate into English fields as a simple fallback (can be edited later)
+      name_en: formData.name || '',
+      description_en: formData.description || '',
+      category_en: formData.category || '',
+
+      // Hebrew fields left empty by default
+      name_he: '',
+      description_he: '',
+      category_he: '',
+
+      price: parseFloat(formData.price) || 0,
+      image: formData.image || '',
+    };
+
     try {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -85,6 +122,9 @@ export default function AdminDashboardPage() {
         setEditingKetuba(null);
         setFormData({ name: '', description: '', price: '', image: '', category: '' });
         loadKetubas();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        console.error('Server response:', data);
       }
     } catch (error) {
       console.error('Chyba při ukládání ketuboty:', error);
@@ -94,9 +134,9 @@ export default function AdminDashboardPage() {
   const handleEdit = (ketuba: Ketuba) => {
     setEditingKetuba(ketuba);
     setFormData({
-      name: ketuba.name,
+      name: ketuba.name || '',
       description: ketuba.description || '',
-      price: ketuba.price.toString(),
+      price: ketuba.price != null ? ketuba.price.toString() : '',
       image: ketuba.image || '',
       category: ketuba.category || '',
     });
@@ -134,7 +174,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy/5 to-gold/5">
+    <div className="min-h-screen bg-linear-to-br from-navy/5 to-gold/5">
       {/* Header */}
       <header className="bg-white shadow-md">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
@@ -225,7 +265,7 @@ export default function AdminDashboardPage() {
                     <div className="border-2 border-sage/20 rounded-lg overflow-hidden max-w-md">
                       <img
                         src={formData.image}
-                        alt="Náhled"
+                        alt={formData.name || 'Náhled obrázku'}
                         className="w-full h-48 object-cover"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
@@ -289,7 +329,7 @@ export default function AdminDashboardPage() {
                   <div className="flex gap-4 items-start">
                     {/* Miniatura obrázku */}
                     {ketuba.image ? (
-                      <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 border-2 border-sage/20">
+                      <div className="w-24 h-24 rounded-lg overflow-hidden shrink-0 border-2 border-sage/20">
                         <img
                           src={ketuba.image}
                           alt={ketuba.name}
@@ -304,16 +344,23 @@ export default function AdminDashboardPage() {
                         />
                       </div>
                     ) : (
-                      <div className="w-24 h-24 rounded-lg bg-sage/10 flex-shrink-0 flex items-center justify-center border-2 border-sage/20">
+                      <div className="w-24 h-24 rounded-lg bg-sage/10 shrink-0 flex items-center justify-center border-2 border-sage/20">
                         <span className="text-gold text-2xl">✡</span>
                       </div>
                     )}
 
                     {/* Informace o ketubě */}
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-navy mb-2">
-                        {ketuba.name}
-                      </h3>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-xl font-bold text-navy mb-2">
+                          {ketuba.name}
+                        </h3>
+                        {ketuba.sourceLocale && (
+                          <span className="inline-block text-xs font-semibold px-2 py-1 rounded bg-sage/10 text-sage">
+                            {ketuba.sourceLocale}
+                          </span>
+                        )}
+                      </div>
                       {ketuba.description && (
                         <p className="text-sage mb-2">{ketuba.description}</p>
                       )}
@@ -330,7 +377,7 @@ export default function AdminDashboardPage() {
                     </div>
 
                     {/* Tlačítka akcí */}
-                    <div className="flex gap-2 ml-4 flex-shrink-0">
+                    <div className="flex gap-2 ml-4 shrink-0">
                       <button
                         onClick={() => handleEdit(ketuba)}
                         className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"

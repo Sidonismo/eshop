@@ -90,7 +90,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy/10 to-gold/10 px-6">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-navy/10 to-gold/10 px-6">
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
         {/* Hlavička */}
         <div className="text-center mb-8">
