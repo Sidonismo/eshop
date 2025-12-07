@@ -6,16 +6,23 @@
  * DELETE: Smaže ketubu
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getKetubaById, updateKetuba, deleteKetuba, Ketuba } from '@/lib/db';
 
 // GET - Získat detail ketuboty
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: Request,
+  { params }: { params: Promise<{ id?: string | string[] }> }
 ) {
   try {
-    const ketuba = getKetubaById(parseInt(params.id));
+    const { id } = await params;
+    const ketubaIdRaw = Array.isArray(id) ? id?.[0] : id;
+    const ketubaId = ketubaIdRaw ? parseInt(ketubaIdRaw, 10) : NaN;
+
+    if (Number.isNaN(ketubaId)) {
+      return NextResponse.json({ error: 'Neplatné ID ketuby' }, { status: 400 });
+    }
+    const ketuba = getKetubaById(ketubaId);
 
     if (!ketuba) {
       return NextResponse.json({ error: 'Ketuba nenalezena' }, { status: 404 });
@@ -33,8 +40,8 @@ export async function GET(
 
 // PUT - Aktualizovat ketubu
 export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: Request,
+  { params }: { params: Promise<{ id?: string | string[] }> }
 ) {
   try {
     const body: Ketuba = await request.json();
@@ -46,7 +53,14 @@ export async function PUT(
       );
     }
 
-    const success = updateKetuba(parseInt(params.id), {
+    const { id } = await params;
+    const ketubaIdRaw = Array.isArray(id) ? id?.[0] : id;
+    const ketubaId = ketubaIdRaw ? parseInt(ketubaIdRaw, 10) : NaN;
+
+    if (Number.isNaN(ketubaId)) {
+      return NextResponse.json({ error: 'Neplatné ID ketuby' }, { status: 400 });
+    }
+    const success = updateKetuba(ketubaId, {
       name: body.name,
       description: body.description,
       price: body.price,
@@ -73,11 +87,18 @@ export async function PUT(
 
 // DELETE - Smazat ketubu
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: Request,
+  { params }: { params: Promise<{ id?: string | string[] }> }
 ) {
   try {
-    const success = deleteKetuba(parseInt(params.id));
+    const { id } = await params;
+    const ketubaIdRaw = Array.isArray(id) ? id?.[0] : id;
+    const ketubaId = ketubaIdRaw ? parseInt(ketubaIdRaw, 10) : NaN;
+
+    if (Number.isNaN(ketubaId)) {
+      return NextResponse.json({ error: 'Neplatné ID ketuby' }, { status: 400 });
+    }
+    const success = deleteKetuba(ketubaId);
 
     if (!success) {
       return NextResponse.json({ error: 'Ketuba nenalezena' }, { status: 404 });
