@@ -53,6 +53,144 @@ export const ketubaSchema = z.object({
 });
 
 /**
+ * Schéma pro vytvoření/aktualizaci lokalizované ketuboty
+ * 
+ * Podporuje vícejazyčná pole pro cs/en/he
+ */
+export const localizedKetubaSchema = z.object({
+  // České texty (povinné)
+  name_cs: z.string()
+    .min(1, 'Český název je povinný')
+    .max(200, 'Název může mít maximálně 200 znaků')
+    .trim(),
+  
+  description_cs: z.string()
+    .max(2000, 'Popis může mít maximálně 2000 znaků')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+  
+  category_cs: z.string()
+    .max(100, 'Kategorie může mít maximálně 100 znaků')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+
+  // Anglické texty (povinné)
+  name_en: z.string()
+    .min(1, 'Anglický název je povinný')
+    .max(200, 'Název může mít maximálně 200 znaků')
+    .trim(),
+  
+  description_en: z.string()
+    .max(2000, 'Popis může mít maximálně 2000 znaků')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+  
+  category_en: z.string()
+    .max(100, 'Kategorie může mít maximálně 100 znaků')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+
+  // Hebrejské texty (volitelné)
+  name_he: z.string()
+    .max(200, 'Název může mít maximálně 200 znaků')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+  
+  description_he: z.string()
+    .max(2000, 'Popis může mít maximálně 2000 znaků')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+  
+  category_he: z.string()
+    .max(100, 'Kategorie může mít maximálně 100 znaků')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+
+  // Společná pole
+  price: z.number()
+    .positive('Cena musí být kladné číslo')
+    .max(1000000, 'Cena je příliš vysoká'),
+  
+  image: z.string()
+    .trim()
+    .optional()
+    .refine((val) => !val || val === '' || z.string().url().safeParse(val).success, {
+      message: 'Obrázek musí být platná URL nebo prázdný',
+    }),
+});
+
+/**
+ * Schéma pro CMS stránku
+ */
+export const cmsPageSchema = z.object({
+  slug: z.string()
+    .min(1, 'URL slug je povinný')
+    .max(100, 'Slug je příliš dlouhý')
+    .regex(/^[a-z0-9-]+$/, 'Slug může obsahovat pouze malá písmena, čísla a pomlčky')
+    .trim(),
+
+  // České texty (povinné)
+  title_cs: z.string()
+    .min(1, 'Český nadpis je povinný')
+    .max(200, 'Nadpis je příliš dlouhý')
+    .trim(),
+  
+  content_cs: z.string()
+    .min(1, 'Český obsah je povinný')
+    .max(50000, 'Obsah je příliš dlouhý'),
+
+  meta_description_cs: z.string()
+    .max(300, 'Meta popis je příliš dlouhý')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+
+  // Anglické texty (povinné)
+  title_en: z.string()
+    .min(1, 'Anglický nadpis je povinný')
+    .max(200, 'Nadpis je příliš dlouhý')
+    .trim(),
+  
+  content_en: z.string()
+    .min(1, 'Anglický obsah je povinný')
+    .max(50000, 'Obsah je příliš dlouhý'),
+
+  meta_description_en: z.string()
+    .max(300, 'Meta popis je příliš dlouhý')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+
+  // Hebrejské texty (volitelné)
+  title_he: z.string()
+    .max(200, 'Nadpis je příliš dlouhý')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+  
+  content_he: z.string()
+    .max(50000, 'Obsah je příliš dlouhý')
+    .optional()
+    .or(z.literal('')),
+
+  meta_description_he: z.string()
+    .max(300, 'Meta popis je příliš dlouhý')
+    .trim()
+    .optional()
+    .or(z.literal('')),
+
+  // Společná pole
+  published: z.boolean(),
+});
+
+/**
  * Schéma pro přihlášení
  *
  * Validace:
