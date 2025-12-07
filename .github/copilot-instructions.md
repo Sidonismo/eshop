@@ -1,52 +1,128 @@
 # Copilot Instructions - Eshop s ketubami
 
+Poznámka: První části popisují výchozí stav projektu (na začátku práce). Poslední část uvádí finální stav po posledních úpravách (nakonec).
+
 ## Přehled projektu
 
-Eshop pro prodej ketubot s administračním rozhraním. Next.js 15 (App Router) + React + Tailwind CSS.
+Vícejazyčný eshop pro prodej ketubot s administračním rozhraním. Next.js 15 (App Router) + React + Tailwind CSS + next-intl.
 
 ## Technologie
 
 - **Frontend**: React (Next.js 15), Tailwind CSS
+- **i18n**: next-intl (vícejazyčnost cs/en/he)
 - **Backend**: Next.js API Routes  
 - **Databáze**: JSON soubory (`data/ketubas.json`, `data/users.json`)
 - **Email**: Resend API
 - **Autentizace**: JWT tokens (JSON Web Tokens) s bcrypt hashováním hesel
 - **Session**: Secure HTTP-only cookies (24h expirace)
 - **Validace**: Zod schemas pro runtime validaci
-- **Ochrana**: Next.js middleware chrání admin routes
+- **Ochrana**: Next.js middleware chrání admin routes + i18n routing
 
 ## Struktura projektu
 
 ```
 app/
+├── [locale]/                   # 🆕 Vícejazyčná struktura (cs/en/he)
+│   ├── layout.tsx              # Root layout s locale provider + navigace
+│   ├── page.tsx                # Hlavní stránka (lokalizovaná)
+│   ├── kontakt/page.tsx        # Kontaktní formulář (lokalizovaný)
+│   ├── produkt/[id]/page.tsx   # Detail produktu (lokalizovaný)
+│   └── [slug]/page.tsx         # 🔜 Dynamické CMS stránky
 ├── admin/
-│   ├── login/page.tsx          # Přihlašovací stránka
-│   └── dashboard/page.tsx      # Admin dashboard s CRUD operacemi
+│   ├── login/page.tsx          # Přihlašovací stránka (bez locale)
+│   └── dashboard/
+│       ├── page.tsx            # 🔜 Admin dashboard (multi-lang tabs)
+│       └── pages/              # 🔜 CMS správa stránek
+│           └── page.tsx
 ├── api/
 │   ├── admin/
 │   │   ├── auth/               # init, login, logout endpoints (JWT)
-│   │   └── ketubas/            # CRUD pro ketuboty (admin, Zod validace)
+│   │   ├── ketubas/            # 🔜 CRUD pro vícejazyčné ketuboty
+│   │   └── pages/              # 🔜 CRUD pro CMS stránky
 │   ├── contact/route.ts        # Kontaktní formulář (Zod validace)
-│   └── ketubas/route.ts        # Veřejný seznam ketubot
-├── kontakt/page.tsx            # Veřejný kontaktní formulář
-├── produkt/[id]/page.tsx       # Detail produktu
-└── page.tsx                    # Hlavní stránka (dynamicky načítá ketuboty)
+│   └── ketubas/route.ts        # 🔜 Veřejný seznam ketubot (s locale)
+├── globals.css
+
+components/                      # 🆕 Sdílené komponenty
+├── LanguageSwitcher.tsx        # Přepínač jazyků (dropdown)
+└── admin/                      # 🔜 Admin komponenty
+    ├── MultiLangInput.tsx      # Tab interface pro multi-lang
+    └── PageEditor.tsx          # CMS editor
 
 data/
-├── ketubas.json                # Databáze ketubot
+├── ketubas.json                # 🔜 Databáze ketubot (multi-lang)
+├── pages.json                  # 🔜 CMS stránky (multi-lang)
 └── users.json                  # Databáze uživatelů
 
 lib/
 ├── db.ts                       # Databázový modul (JSON operace)
 ├── auth.ts                     # JWT autentizační funkce (Node.js runtime)
 ├── auth-edge.ts                # JWT autentizační funkce (Edge runtime)
-└── validation.ts               # Zod validační schémata
+├── i18n.ts                     # 🆕 next-intl konfigurace
+└── validation.ts               # 🆕 Zod validační schémata (multi-lang)
+
+messages/                        # 🆕 Translation files
+├── cs.json                     # České překlady
+├── en.json                     # Anglické překlady
+└── he.json                     # Hebrejské překlady (RTL)
 
 types/
-├── ketuba.ts                   # TypeScript typy pro Ketubu
+├── ketuba.ts                   # 🆕 TypeScript typy (LocalizedKetuba)
+├── page.ts                     # 🆕 CMS page types
 └── user.ts                     # TypeScript typy pro Uživatele
 
-middleware.ts                   # Next.js middleware (ochrana admin routes)
+middleware.ts                   # 🆕 Kombinovaný middleware (i18n + auth)
+next.config.ts                  # 🆕 Obsahuje next-intl plugin
+```
+
+## Vícejazyčnost (i18n)
+
+### Podporované jazyky
+- **cs** (Čeština) - výchozí jazyk
+- **en** (English) - mezinárodní
+- **he** (עברית - Hebrejština) - RTL podpora
+
+### Routing
+- Prefix-based: `/cs/`, `/en/`, `/he/`
+- Automatická detekce a redirect na výchozí locale
+- Zachování cesty při přepnutí jazyka (např. `/cs/produkt/1` → `/en/produkt/1`)
+
+### Translation Files
+Struktura `messages/{locale}.json`:
+```json
+{
+  "common": { "loading", "error", "save", "cancel", ... },
+  "nav": { "home", "products", "about", "contact", "admin" },
+  "home": { "title", "subtitle", "viewDetails", ... },
+  "product": { "details", "priceLabel", "categoryLabel", ... },
+  "contact": { "title", "nameLabel", "emailLabel", ... },
+  "admin": {
+    "login": { ... },
+    "dashboard": { "title", "tabs": {"czech", "english", "hebrew"}, ... },
+    "pages": { ... }
+  }
+}
+```
+
+### Použití v komponentách
+
+**Client components**:
+```typescript
+import { useTranslations } from 'next-intl';
+const t = useTranslations();
+<h1>{t('home.title')}</h1>
+```
+
+**Server components**:
+```typescript
+import { getTranslations } from 'next-intl/server';
+const t = await getTranslations();
+<h1>{t('home.title')}</h1>
+```
+
+**RTL podpora**:
+```tsx
+<html lang={locale} dir={locale === 'he' ? 'rtl' : 'ltr'}>
 ```
 
 ## JWT Dual Runtime systém
@@ -63,16 +139,46 @@ Oba používají stejný `JWT_SECRET` z `.env.local`.
 
 ## Databázové schéma
 
-### data/ketubas.json
+### data/ketubas.json (🔜 PLÁNOVANÁ STRUKTURA)
 ```json
 [
   {
     "id": 1,
-    "name": "string",           // povinné
-    "description": "string",    // nepovinné
-    "price": 2500,              // povinné (Kč)
-    "image": "https://...",     // nepovinné (URL)
-    "category": "string",       // nepovinné
+    "name_cs": "Krása nebeská",
+    "name_en": "Heavenly Beauty",
+    "name_he": "יופי שמימי",
+    "description_cs": "Tradiční ketuba s hebrejskými motivy",
+    "description_en": "Traditional ketuba with Hebrew motifs",
+    "description_he": "כתובה מסורתית עם מוטיבים עבריים",
+    "category_cs": "Tradiční",
+    "category_en": "Traditional",
+    "category_he": "מסורתי",
+    "price": 54545,
+    "image": "https://placehold.co/600x400",
+    "created_at": "ISO string",
+    "updated_at": "ISO string"
+  }
+]
+
+**DŮLEŽITÉ**: Obrázek (`image`) je **naprosto zásadní** pole - ketuba bez obrázku je v eshopu prakticky neprodejná.
+```
+
+### data/pages.json (🔜 NOVÝ SOUBOR)
+```json
+[
+  {
+    "id": 1,
+    "slug": "o-nas",
+    "title_cs": "O nás",
+    "title_en": "About Us",
+    "title_he": "אודותינו",
+    "content_cs": "# Vítejte\nNaše příběh...",
+    "content_en": "# Welcome\nOur story...",
+    "content_he": "# ברוכים הבאים\nהסיפור שלנו...",
+    "meta_description_cs": "Zjistěte více o našem obchodě",
+    "meta_description_en": "Learn more about our shop",
+    "meta_description_he": "למידע נוסף על החנות שלנו",
+    "published": true,
     "created_at": "ISO string",
     "updated_at": "ISO string"
   }
@@ -273,14 +379,48 @@ npm run build  # Zkompiluje a ověří typy
 
 ## Budoucí vylepšení
 
+- [x] **Ecommerce s lokalizací a vícejazyčnými stránkami** - IMPLEMENTOVÁNO (7.12.2025)
+  - ✅ next-intl integrace (cs/en/he)
+  - ✅ Vícejazyčné routing (app/[locale]/*)
+  - ✅ Language Switcher komponenta
+  - ✅ RTL podpora pro hebrejštinu
+  - ✅ Lokalizované stránky (home, kontakt, produkt)
+  - ⏳ Admin multi-language tabs - ČEKÁ NA IMPLEMENTACI
+  - ⏳ CMS struktura - ČEKÁ NA IMPLEMENTACI
 - [ ] Upload obrázků (Cloudinary/AWS S3)
-- [ ] Middleware ochrana admin routes
+- [x] Middleware ochrana admin routes - IMPLEMENTOVÁNO
 - [ ] Vyhledávání a filtrace
 - [ ] Pagination
 - [ ] Export dat (CSV/JSON)
 - [ ] Bulk operace
 - [ ] Audit log admin akcí
 - [ ] 2FA autentizace
+
+## Známé problémy a řešení
+
+### next-intl routing setup (vyřešeno 7.12.2025)
+
+**Problém**: 404 errors na všechny locale routes (/cs, /en, /he) i když build byl úspěšný.
+
+**Příčina**: Nesprávná struktura root layout souborů - duplikace `<html><body>` tagů.
+
+**Řešení**:
+```
+app/
+  layout.tsx          // POUZE: export default function RootLayout({children}) { return children; }
+  not-found.tsx       // 'use client' s <html><body><Error statusCode={404} /></body></html>
+  [locale]/
+    layout.tsx        // Obsahuje <html><body> + NextIntlClientProvider + navigaci
+    page.tsx
+```
+
+**Klíčové poznatky**:
+- Root `app/layout.tsx` NESMÍ mít `<html><body>` když používáte `[locale]/layout.tsx`
+- `lib/i18n.ts` export `getRequestConfig` MUSÍ vracet `{locale, messages}` (ne jen messages)
+- `app/not-found.tsx` musí být client component pro routes mimo middleware
+- Duplicate keys v JSON translation files způsobují build errors
+
+**Referenční zdroj**: [next-intl official examples](https://github.com/amannn/next-intl/tree/main/examples/example-app-router)
 
 ## Dokumentační pravidla
 
@@ -325,3 +465,113 @@ const ketubas = getAllKetubas();
 ## Status projektu
 
 ✅ **PLNĚ FUNKČNÍ** - Projekt je připravený k použití a rozšiřování.
+
+## Status projektu
+
+### ✅ Implementované funkce (7.12.2025)
+
+**Autentizace a bezpečnost:**
+- JWT dual-runtime systém (Node.js + Edge)
+- Bcrypt password hashing
+- Secure HTTP-only cookies
+- Zod runtime validace
+
+**Vícejazyčnost (i18n):**
+- next-intl integrace (cs/en/he)
+- Prefix-based routing (/cs/, /en/, /he/)
+- Language Switcher s dropdown menu
+- RTL podpora pro hebrejštinu
+- ~100 translation keys v 3 jazycích
+- Lokalizované stránky: home, kontakt, produkt detail
+
+**Frontend:**
+- Next.js 15 App Router
+- Tailwind CSS styling
+- Responzivní navigace s locale supportem
+- Loading states a error handling
+
+**Backend:**
+- JSON databáze (users, ketubas)
+- Admin API endpoints (CRUD)
+- Contact form s Resend API
+- Middleware kombinující i18n + JWT auth
+
+### ⏳ Čeká na implementaci
+
+**Admin CMS multi-language:**
+- Multi-language tabs v admin dashboardu
+- Inline editing pro LocalizedKetuba (name_cs/en/he, description_cs/en/he)
+- CMS page management (pages.json + CRUD API)
+
+**API rozšíření:**
+- `/api/ketubas` s locale query parametrem
+- `/api/admin/pages` CRUD endpoints
+- Migrace dat na multilingual strukturu
+
+**Testing:**
+- ⚠️ Dev server funkční, ale čeká na browser test
+- Build úspěšný (18 routes vygenerováno)
+- Middleware logy ukazují správné 307/200 responses
+
+### 🔴 Aktuální status (7.12.2025 - konec session)
+
+**PŘIPRAVENO K TESTOVÁNÍ** - Server kompiluje, middleware funguje, čeká se na manuální test v prohlížeči.
+
+**Poslední známý stav:**
+- Build: ✅ Úspěšný (všech 18 routes vygenerováno)
+- Middleware: ✅ Funkční (307 redirect / → /cs, 200 response na /cs)
+- Kompilace: ✅ 750 modulů kompilováno
+- Browser test: ⏳ Pending (terminál přerušován Ctrl+C)
+
+**Příští kroky:**
+1. Spustit dev server a otestovat http://localhost:3000 v prohlížeči
+2. Ověřit Language Switcher funkčnost (cs/en/he přepínání)
+3. Zkontrolovat RTL layout pro hebrejštinu (dir="rtl")
+4. Otestovat navigaci mezi lokalizovanými stránkami
+5. Po ověření funkčnosti implementovat admin multi-language tabs
+
+# Copilot Instructions – Eshop
+
+Stručné pokyny pro práci v projektu (Next.js 15 + next-intl).
+
+## Klíčové informace
+- Routy jsou prefixované locale: `/cs`, `/en`, `/he`.
+- Middleware kombinuje i18n routing a JWT ochranu admin částí.
+- Překlady jsou v `messages/{locale}.json` – musí být validní JSON.
+
+## Časté úlohy
+- Dev server:
+  ```zsh
+  npm run dev
+  ```
+- Build a typová kontrola:
+  ```zsh
+  npm run build
+  ```
+- Vyčistit Next.js cache:
+  ```zsh
+  rm -rf .next
+  ```
+
+## i18n (next-intl)
+- Konfigurace v `lib/i18n.ts` – používá bezpečný fallback na `cs`, když je locale neplatné.
+- V `app/[locale]/layout.tsx` používej `await params` a validaci locale.
+
+## Middleware
+- Ochrana admin cest (`/admin/dashboard`, `/api/admin/*`) pomocí cookie `admin_session`.
+- Veřejné cesty prochází i18n middlewarem a vynucují prefix locale.
+
+## Backend
+- Veřejný API: `GET /api/ketubas?locale=cs|en|he` – vrací lokalizovaná data.
+- Admin API: CRUD pro ketuboty (chráněno JWT v cookie).
+
+## Tipy
+- Pokud se v devu objeví 404 na všech URL, vymaž `.next` a zkontroluj `lib/i18n.ts` (fallback).
+- Při práci s fallback daty sjednoť typy (např. `id` může být `number | string`).
+
+## Finální stav (nakonec)
+- i18n fallback: `lib/i18n.ts` při neplatném/nezjištěném locale používá výchozí `cs` místo 404.
+- Safeguard v `middleware.ts`: cesty bez locale prefixu se přesměrují na `/${defaultLocale}` se zachováním zbytku cesty.
+- `app/[locale]/page.tsx`: odstraněn import `data/products.ts` (typový konflikt), přidán malý `fallbackProducts`, sjednocené typy `id: number | string`.
+
+
