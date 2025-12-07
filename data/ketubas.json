@@ -28,5 +28,15 @@
     "id": 3,
     "created_at": "2025-12-07T08:18:06.920Z",
     "updated_at": "2025-12-07T08:18:06.920Z"
+  },
+  {
+    "name": "FFFFFFF",
+    "description": "",
+    "price": 234,
+    "image": "",
+    "category": "",
+    "id": 4,
+    "created_at": "2025-12-07T08:37:43.851Z",
+    "updated_at": "2025-12-07T08:37:43.851Z"
   }
 ]
