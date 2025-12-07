@@ -353,6 +353,105 @@ Zobrazeno na hlavní stránce
 
 ---
 
+## 📅 Datum: 7. prosince 2025
+
+### 🎯 Úkol: Oprava Next.js 15 route handler typingu
+
+#### ❌ Problémy a jejich řešení
+
+**Problém: Next.js build selhával na typové chybě**
+- **Chyba**: 
+  ```
+  Type error: Route "app/api/admin/ketubas/[id]/route.ts" has an invalid "GET" export:
+  Type "{ params: { id: string; }; }" is not a valid type for the function's second argument.
+  ```
+- **Příčina**: 
+  - Next.js 15 App Router očekává `params` jako `Promise<{ id?: string | string[] }>`
+  - Původní kód používal `NextRequest` typ a synchronní params
+  - Route handlers musí používat standardní `Request` typ, ne `NextRequest`
+
+**Řešení 1: Změna typu request parametru**
+```typescript
+// ❌ Původní (nefunguje)
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+)
+
+// ✅ Opraveno
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id?: string | string[] }> }
+)
+```
+
+**Řešení 2: Asynchronní zpracování params**
+```typescript
+// Await params a validace
+const { id } = await params;
+const ketubaIdRaw = Array.isArray(id) ? id?.[0] : id;
+const ketubaId = ketubaIdRaw ? parseInt(ketubaIdRaw, 10) : NaN;
+
+if (Number.isNaN(ketubaId)) {
+  return NextResponse.json({ error: 'Neplatné ID ketuby' }, { status: 400 });
+}
+```
+
+**Řešení 3: Odstranění zbytečných lockfiles**
+- Smazán `/home/elda/package-lock.json` (způsoboval Next.js warning)
+- Ponechán pouze projektový `package-lock.json`
+- Build už nehlásí varování o více lockfiles
+
+#### ✅ Výsledky
+
+1. **Opravené soubory**:
+   - `app/api/admin/ketubas/[id]/route.ts` - GET, PUT, DELETE handlery
+   - Všechny route handlery používají správný typing
+
+2. **Build úspěšný**:
+   ```
+   ✓ Compiled successfully
+   ✓ Linting and checking validity of types
+   ✓ Collecting page data
+   ✓ Generating static pages (17/17)
+   ```
+
+3. **Vylepšení**:
+   - Validace ID před použitím (NaN check)
+   - Konzistentní error handling
+   - Type-safe params zpracování
+
+#### 💡 Naučené lekce
+
+1. **Next.js 15 App Router specifika**:
+   - Route handlers MUSÍ používat `Request`, ne `NextRequest`
+   - Params jsou vždy `Promise` a musí být await-ované
+   - ID může být `string | string[] | undefined`
+
+2. **TypeScript best practices**:
+   - Vždy validovat data před použitím
+   - Používat type guards (Array.isArray, Number.isNaN)
+   - Explicitní error handling pro edge cases
+
+3. **Next.js workspace setup**:
+   - Jeden lockfile na projekt
+   - Multiple lockfiles matou Next.js workspace detection
+   - Clean setup = méně varování
+
+#### 📝 Poznámky
+
+- Tato změna se týká všech dynamic route handlers v projektu
+- Pro budoucí route handlers vždy použít tento pattern
+- Next.js 15 je přísnější na typing než předchozí verze
+
+#### 🎉 Závěr
+
+Build nyní prochází bez chyb. Projekt je připravený k dalšímu vývoji.
+
+**Status**: ✅ VYŘEŠENO
+
+---
+
 ## 📚 Souhrn projektu
 
 ### Co bylo vytvořeno
