@@ -1,3 +1,23 @@
+## Rychlé shrnutí
+
+- **Co to je:** Vícejazyčný Next.js 15 eshop (prefix routing `cs`/`en`/`he`) s administračním rozhraním a jednoduchou JSON databází (`data/`).
+- **Klíčové komponenty:** `next-intl` pro i18n, dual-runtime JWT autentizace (`lib/auth.ts` + `lib/auth-edge.ts`), `middleware.ts` (i18n + auth), Zod validace (`lib/validation.ts`).
+- **Hlavní operace:** inicializace admina (`POST /api/admin/auth/init`), přihlášení (`/admin/login`), správa ketub (CRUD přes `/api/admin/ketubas`).
+- **Nejčastější problémy:** chybné/nevhodné locale (404), nevalidní `messages/*.json`, chybějící `JWT_SECRET` v `.env.local`, statické cache v `.next`.
+
+### Rychlá checklista před spuštěním
+
+- **Env vars:** `.env.local` obsahuje `JWT_SECRET` (silný klíč) a `RESEND_API_KEY` pokud používáte kontaktní formulář.
+- **Databáze:** `data/ketubas.json` a `data/users.json` existují (nebo budou vytvořeny při prvním spuštění). Pokud ne, spusťte:
+  ```zsh
+  mkdir -p data
+  echo '[]' > data/ketubas.json
+  echo '[]' > data/users.json
+  ```
+- **Dev server:** `npm install` a `npm run dev`.
+- **I18n troubleshooting:** při 404 vymažte `.next` a zkontrolujte `lib/i18n.ts` (fallback na `cs`).
+- **Obrázky:** používejte platné `http(s)` URL nebo zvažte implementaci uploadu (Cloudinary/S3).
+
 ## Oprava 404 na všech URL (12/2025)
 
 ### Kontext
