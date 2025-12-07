@@ -11,11 +11,14 @@ import { z } from 'zod';
  * Schéma pro vytvoření/aktualizaci ketuboty
  *
  * Validace:
- * - name: povinné, min 1 znak, max 200 znaků
- * - description: volitelné, max 2000 znaků
- * - price: povinné, kladné číslo
- * - image: volitelné, platná URL
- * - category: volitelné, max 100 znaků
+ * - name: povinné, min 1 znak, max 200 znaků, automaticky trim
+ * - description: volitelné nebo prázdný string, max 2000 znaků
+ * - price: povinné, kladné číslo (musí být number, ne string)
+ * - image: volitelné, prázdný string NEBO platná URL
+ * - category: volitelné nebo prázdný string, max 100 znaků
+ * 
+ * Poznámka: Frontend posílá price jako number (parseFloat),
+ * image může být '' pokud není zadaná
  */
 export const ketubaSchema = z.object({
   name: z.string()
@@ -26,22 +29,27 @@ export const ketubaSchema = z.object({
   description: z.string()
     .max(2000, 'Popis může mít maximálně 2000 znaků')
     .trim()
-    .optional(),
+    .optional()
+    .or(z.literal('')), // Povolit prázdný string pro volitelná pole
   
   price: z.number()
     .positive('Cena musí být kladné číslo')
     .max(1000000, 'Cena je příliš vysoká'),
   
+  // Image validace: prázdný string NEBO platná URL
+  // refine() kontroluje URL pouze pokud není prázdné
   image: z.string()
-    .url('Obrázek musí být platná URL')
     .trim()
     .optional()
-    .or(z.literal('')), // Povolit prázdný string
+    .refine((val) => !val || val === '' || z.string().url().safeParse(val).success, {
+      message: 'Obrázek musí být platná URL nebo prázdný',
+    }),
   
   category: z.string()
     .max(100, 'Kategorie může mít maximálně 100 znaků')
     .trim()
-    .optional(),
+    .optional()
+    .or(z.literal('')), // Povolit prázdný string pro volitelná pole
 });
 
 /**
